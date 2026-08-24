@@ -18,7 +18,15 @@
 - [x] Implémentation du stockage localStorage, export JSON/CSV, Wake Lock, Service Worker.
 - [x] Affichage du nom du GB actif dans le bloc "Série en cours".
 - [x] Affichage "PENALTY - [GB]" dans le bloc série quand un penalty est actif (masque la valeur + le label).
+- [x] Refonte du bloc série en cours : disposition en 2 colonnes (sans trait vertical de séparation). Colonne gauche : nom du GB en gros (`streak-gb-name`, `line-clamp-2` pour 2 lignes) + "Série en cours" (ou "PENALTY") en dessous. Colonne droite : valeur de série en très gros + label (Buts/Arrêts).
+
+
+
+
 - [x] Retour automatique au GB de match après l'enregistrement d'un penalty (réaffiche sa série).
+- [x] Précision sur le retour GB après penalty : si **pas de changement de GB** pendant le penalty → on continue la série (le GB qui a tiré reste actif) ET le penalty **compte dans sa série** (`countInStreak = true`, un but en penalty ajoute un but à sa série) ; si **changement de GB** pendant le penalty → on revient au GB qui jouait avant (`gbBeforePenalty`) et le penalty **ne compte pas** dans la série (`countInStreak = false`). Flag `gbChangedDuringPenalty` ajouté dans `switchGuardian`, champ `countInStreak` sur l'événement, `computeStreak` inclut les penaltys avec `countInStreak === true`.
+
+
 - [x] Affichage des stats penaltys dans les ratios (GB actif, GB banc, global) au format `3/11 (p 2/3)`.
 - [x] Alignement de la hauteur du conteneur des boutons G1/G2 sur celle du conteneur MT1/MT2.
 - [x] Refonte de la section "Seuils Visuels" (% d'arrêts) sur 1 ligne : `0% [couleur rouge] [seuil 25%] [couleur orange] [seuil 35%] [couleur vert] 100%` (sans barre de progression).
@@ -26,7 +34,7 @@
 - [x] Création du sélecteur de couleur simplifié (`createColorPicker`) avec palette de swatches vert→orange→rouge.
 - [x] Déclinaison automatique des couleurs des paliers (`generateStreakColors`) en **gradation naturelle** du vert clair au rouge vif (via `generateGradientPalette` + interpolation HSL), toutes couleurs différentes, adaptée au nombre de paliers.
 - [x] Palette de couleurs simplifiée (`COLOR_PALETTE`) en gradation naturelle vert clair→rouge vif (`generateGradientPalette(9)`, 9 nuances franches).
-- [x] Assombrissement de la gradation (luminosité 45%→35%) : le vert clair est plus faible que le vert foncé, et toutes les couleurs restent lisibles avec le texte blanc dans `#streak-block`.
+- [x] Gradation claire des couleurs des paliers : saturation (85%) et luminosité (45%) constantes, seule la teinte varie (120°→0°). Pas de variations de luminosité confuses, texte blanc lisible dans `#streak-block`.
 
 ## Prochaines Étapes (Backlog)
 

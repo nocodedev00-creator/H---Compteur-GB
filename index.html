@@ -135,11 +135,22 @@
     </div>
 
     <!-- Bloc série en cours (gardien actif) -->
-    <div id="streak-block" class="flex-1 flex flex-col items-center justify-center bg-slate-800/60 rounded-xl border border-slate-700 min-h-0">
-      <div id="streak-title" class="text-xs font-bold uppercase text-white/60 tracking-widest">Série en cours</div>
-      <div id="streak-value" class="font-oswald font-black text-6xl leading-none mt-1">0</div>
-      <div id="streak-label" class="font-oswald font-semibold text-2xl uppercase tracking-wider mt-1">—</div>
+    <div id="streak-block" class="flex-1 flex items-center bg-slate-800/60 rounded-xl border border-slate-700 min-h-0 overflow-hidden">
+      <!-- Colonne gauche : nom du GB en gros + "Série en cours" en dessous -->
+      <div class="flex-1 flex flex-col items-center justify-center min-w-0 px-3 py-2">
+        <div id="streak-gb-name" class="font-oswald font-black text-3xl uppercase tracking-wide text-center leading-tight line-clamp-2 max-w-full">GB</div>
+        <div id="streak-title" class="text-xs font-bold uppercase text-white/60 tracking-widest mt-1">Série en cours</div>
+      </div>
+      <!-- Colonne droite : la série (valeur + label) -->
+      <div class="flex flex-col items-center justify-center px-4 shrink-0">
+
+        <div id="streak-value" class="font-oswald font-black text-6xl leading-none">0</div>
+        <div id="streak-label" class="font-oswald font-semibold text-2xl uppercase tracking-wider mt-1">—</div>
+      </div>
     </div>
+
+
+
 
     <!-- Bouton Penalty (toggle) -->
     <button id="btn-penalty" class="shrink-0 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white/80 text-sm font-bold uppercase tracking-wide">

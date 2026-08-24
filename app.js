@@ -36,8 +36,10 @@ let ui = {
   activeGb: 'G1',      // Gardien actif
   period: 'MT1',       // Période courante
   penaltyActive: false, // Toggle penalty
-  gbBeforePenalty: null // GB qui jouait avant l'activation du penalty
+  gbBeforePenalty: null, // GB qui jouait avant l'activation du penalty
+  gbChangedDuringPenalty: false // Indique si le GB a été changé pendant le penalty
 };
+
 
 /* ============================================================
  * 2. UTILITAIRES
@@ -88,12 +90,11 @@ function generateGradientPalette(n) {
     const t = n === 1 ? 0 : i / (n - 1); // 0 → 1
     // Teinte : 120° (vert) → 0° (rouge), en passant par le jaune (60°) et l'orange (30°)
     const hue = 120 - 120 * t;
-    // Saturation : 75% → 100% (plus vif vers le rouge)
-    const sat = 75 + 25 * t;
-    // Luminosité : 45% → 35% (plus profond vers le rouge).
-    // Le vert clair (1er palier) est plus faible que le vert foncé (2e palier).
-    // Les couleurs restent suffisamment foncées pour garder le texte blanc lisible dans #streak-block.
-    const light = 45 - 10 * t;
+    // Saturation et luminosité CONSTANTES pour éviter les variations confuses.
+    // Seule la teinte varie : la gradation est claire et sans ambiguïté.
+    // Luminosité 45% : texte blanc lisible dans #streak-block.
+    const sat = 85;
+    const light = 45;
     colors.push(hslToHex(hue, sat, light));
   }
   return colors;
@@ -325,12 +326,16 @@ function formatRatio(ratio, penaltyRatio) {
 
 /**
  * Calcule la série en cours (BUTS ou ARRÊTS) d'un gardien pour une période donnée.
- * Les penaltys ne cassent PAS la série.
+ * Les penaltys ne cassent PAS la série. Un penalty compte dans la série du GB
+ * uniquement s'il n'y a pas eu de changement de GB pendant le penalty (`countInStreak`).
  * @returns {{ type: 'BUT'|'ARRET'|null, count: number }}
  */
 function computeStreak(events, gbId, period) {
-  const gbEvents = events.filter((e) => e.activeGb === gbId && e.period === period && !e.isPenalty);
+  // Un événement compte dans la série s'il n'est pas un penalty, ou s'il est un penalty
+  // qui doit compter dans la série (pas de changement de GB pendant le penalty).
+  const gbEvents = events.filter((e) => e.activeGb === gbId && e.period === period && (!e.isPenalty || e.countInStreak));
   if (gbEvents.length === 0) return { type: null, count: 0 };
+
 
   // On parcourt de la fin vers le début pour trouver la série en cours
   const last = gbEvents[gbEvents.length - 1];
@@ -383,20 +388,27 @@ function recordAction(action) {
     timestamp: Date.now(),
     action,
     isPenalty: ui.penaltyActive,
+    // Un penalty compte dans la série du GB uniquement s'il n'y a pas eu de changement de GB pendant le penalty
+    countInStreak: ui.penaltyActive && !ui.gbChangedDuringPenalty,
     period: ui.period,
     activeGb: ui.activeGb
   };
   state.current_match.events.push(event);
   // Désactivation automatique du toggle penalty après une action
   ui.penaltyActive = false;
-  // Si c'était un penalty, on revient au GB qui jouait pendant le match
-  if (event.isPenalty && ui.gbBeforePenalty) {
+  // Si c'était un penalty :
+  //  - pas de changement de GB pendant le penalty → on continue la série (le GB qui a tiré reste actif)
+  //  - changement de GB pendant le penalty → on revient au GB qui jouait avant le penalty
+  if (event.isPenalty && ui.gbChangedDuringPenalty && ui.gbBeforePenalty) {
     ui.activeGb = ui.gbBeforePenalty;
   }
   ui.gbBeforePenalty = null;
+  ui.gbChangedDuringPenalty = false;
   saveState();
   renderAll();
 }
+
+
 
 /** Annule la dernière action (Undo) et recalcule tout. */
 function undoAction() {
@@ -555,13 +567,16 @@ function renderStreak() {
   const elLabel = document.getElementById('streak-label');
   const elBlock = document.getElementById('streak-block');
   const elTitle = document.getElementById('streak-title');
+  const elGbName = document.getElementById('streak-gb-name');
 
-  // Affiche le nom du gardien actif à côté de "Série en cours"
+  // Nom du gardien actif affiché en gros (le GB en place dans le but)
   const gbName = state.current_match ? (state.current_match.gardiens[ui.activeGb].name || 'GB') : 'GB';
-  // Si un penalty est actif, on affiche "PENALTY - GB??" et on masque les autres infos
-  elTitle.textContent = ui.penaltyActive ? 'PENALTY - ' + gbName : 'Série en cours — ' + gbName;
+  elGbName.textContent = gbName;
+  // Si un penalty est actif, le titre devient "PENALTY" et on masque la valeur + le label
+  elTitle.textContent = ui.penaltyActive ? 'PENALTY' : 'Série en cours';
   elValue.style.display = ui.penaltyActive ? 'none' : '';
   elLabel.style.display = ui.penaltyActive ? 'none' : '';
+
 
   elValue.textContent = String(streak.count);
   elLabel.textContent = streak.type === null ? '—' : (streak.type === 'BUT' ? 'Buts' : 'Arrêts');
@@ -748,12 +763,15 @@ function bindEvents() {
     // Mémorise le GB qui jouait avant l'activation du penalty
     if (ui.penaltyActive) {
       ui.gbBeforePenalty = ui.activeGb;
+      ui.gbChangedDuringPenalty = false;
     } else {
       ui.gbBeforePenalty = null;
+      ui.gbChangedDuringPenalty = false;
     }
     renderPenalty();
     renderStreak();
   });
+
 
   // Sélecteurs période
   document.getElementById('btn-mt1').addEventListener('click', () => switchPeriod('MT1'));
@@ -834,8 +852,13 @@ function switchPeriod(period) {
 function switchGuardian(gbId) {
   if (ui.activeGb === gbId) return;
   ui.activeGb = gbId;
+  // Si un penalty est actif, on mémorise qu'il y a eu un changement de GB
+  if (ui.penaltyActive) {
+    ui.gbChangedDuringPenalty = true;
+  }
   renderAll();
 }
+
 
 /* ============================================================
  * 10. INITIALISATION
