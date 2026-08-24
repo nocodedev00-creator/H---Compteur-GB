@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Stat-GB" />
+  <title>Stat-GB</title>
+
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts : Montserrat / Oswald -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="manifest" href="manifest.json" />
+
+  <style>
+    /* ===== Contraintes matérielles terrain ===== */
+    html, body {
+      overscroll-behavior-y: contain; /* Anti pull-to-refresh */
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+    }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: #0f172a; /* bg-slate-900 */
+      color: #ffffff;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    .font-oswald { font-family: 'Oswald', sans-serif; }
+
+    /* ===== Alerte série de buts : rouge vif clignotant ===== */
+    @keyframes pulse-red {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+    .streak-alert {
+      animation: pulse-red 0.8s ease-in-out infinite;
+    }
+
+    /* ===== Boutons action mates/pastel ===== */
+    .btn-but {
+      background-color: #b91c1c; /* Rouge brique mat */
+      transition: transform 0.05s ease, filter 0.1s ease;
+    }
+    .btn-but:active { transform: scale(0.97); filter: brightness(1.15); }
+    .btn-arret {
+      background-color: #047857; /* Vert émeraude mat */
+      transition: transform 0.05s ease, filter 0.1s ease;
+    }
+    .btn-arret:active { transform: scale(0.97); filter: brightness(1.15); }
+
+    /* ===== Toggle penalty actif ===== */
+    .penalty-active {
+      outline: 3px solid #f2c200;
+      outline-offset: 2px;
+      background-color: rgba(242, 194, 0, 0.15);
+    }
+
+    /* ===== Scrollbar modale ===== */
+    .modal-scroll::-webkit-scrollbar { width: 6px; }
+    .modal-scroll::-webkit-scrollbar-thumb { background: #4a266a; border-radius: 3px; }
+  </style>
+</head>
+<body class="flex flex-col">
+
+  <!-- ================= HEADER ================= -->
+  <header class="flex items-center justify-between px-4 py-3 bg-[#4a266a] shrink-0">
+    <div class="flex items-center gap-2">
+      <span class="font-oswald font-bold text-lg text-[#f2c200] tracking-wide">Stat-GB</span>
+    </div>
+
+    <div id="opponent-name" class="font-oswald font-semibold text-white text-center text-sm uppercase tracking-wider">—</div>
+    <button id="btn-settings" class="text-[#f2c200] p-2" aria-label="Paramètres">
+      <i data-lucide="settings" class="w-6 h-6"></i>
+    </button>
+  </header>
+
+  <!-- ================= SÉLECTEURS RAPIDES ================= -->
+  <div class="flex items-center gap-2 px-3 py-2 bg-slate-900/80 border-b border-slate-800 shrink-0">
+    <!-- Bascule MT1/MT2 -->
+    <div class="flex rounded-lg overflow-hidden border border-slate-700">
+      <button id="btn-mt1" class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide bg-[#4a266a] text-[#f2c200]">MT1</button>
+      <button id="btn-mt2" class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide bg-slate-800 text-white/60">MT2</button>
+    </div>
+    <div class="flex-1"></div>
+    <!-- Bascule Gardien -->
+    <div class="flex rounded-lg overflow-hidden border border-slate-700">
+      <button id="btn-g1" class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide bg-[#4a266a] text-[#f2c200]">G1</button>
+      <button id="btn-g2" class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide bg-slate-800 text-white/60">G2</button>
+    </div>
+  </div>
+
+  <!-- ================= ZONE STATS CENTRALE ================= -->
+  <main class="flex-1 flex flex-col px-4 py-3 gap-3 overflow-hidden">
+
+    <!-- Bloc % d'arrêts : GB actif + GB banc + global -->
+    <div class="grid grid-cols-3 gap-2 shrink-0">
+      <!-- GB actif -->
+      <div class="bg-slate-800/60 rounded-xl p-2 text-center border border-slate-700">
+        <div id="gb-active-name" class="text-[10px] font-bold uppercase text-white/70 truncate">GB Actif</div>
+        <div id="gb-active-percent" class="font-oswald font-bold text-3xl leading-tight">0%</div>
+        <div class="text-[10px] text-white/50">arrêts</div>
+      </div>
+      <!-- GB banc -->
+      <div class="bg-slate-800/60 rounded-xl p-2 text-center border border-slate-700">
+        <div id="gb-bench-name" class="text-[10px] font-bold uppercase text-white/70 truncate">GB Banc</div>
+        <div id="gb-bench-percent" class="font-oswald font-bold text-3xl leading-tight">0%</div>
+        <div class="text-[10px] text-white/50">arrêts</div>
+      </div>
+      <!-- Global -->
+      <div class="bg-slate-800/60 rounded-xl p-2 text-center border border-slate-700">
+        <div class="text-[10px] font-bold uppercase text-white/70">Global</div>
+        <div id="gb-global-percent" class="font-oswald font-bold text-3xl leading-tight">0%</div>
+        <div class="text-[10px] text-white/50">2 GB</div>
+      </div>
+    </div>
+
+    <!-- Bloc série en cours (gardien actif) -->
+    <div id="streak-block" class="flex-1 flex flex-col items-center justify-center bg-slate-800/60 rounded-xl border border-slate-700 min-h-0">
+      <div class="text-xs font-bold uppercase text-white/60 tracking-widest">Série en cours</div>
+      <div id="streak-value" class="font-oswald font-black text-6xl leading-none mt-1">0</div>
+      <div id="streak-label" class="font-oswald font-semibold text-2xl uppercase tracking-wider mt-1">—</div>
+    </div>
+
+    <!-- Bouton Penalty (toggle) -->
+    <button id="btn-penalty" class="shrink-0 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white/80 text-sm font-bold uppercase tracking-wide">
+      7 Mètres / Penalty
+    </button>
+
+  </main>
+
+  <!-- ================= ZONE D'ACTION ================= -->
+  <footer class="grid grid-cols-2 gap-3 px-4 pb-4 pt-2 shrink-0">
+    <button id="btn-but" class="btn-but h-28 rounded-2xl text-white font-oswald font-black text-3xl uppercase tracking-widest shadow-lg">
+      But
+    </button>
+    <button id="btn-arret" class="btn-arret h-28 rounded-2xl text-white font-oswald font-black text-3xl uppercase tracking-widest shadow-lg">
+      Arrêt
+    </button>
+    <!-- Bouton Annuler (Undo) -->
+    <button id="btn-undo" class="col-span-2 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white/70 text-sm font-semibold flex items-center justify-center gap-2">
+      <i data-lucide="undo-2" class="w-4 h-4"></i> Annuler
+    </button>
+  </footer>
+
+  <!-- ================= MODALE PARAMÈTRES ================= -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 bg-slate-900">
+    <div class="flex flex-col h-full">
+      <div class="flex items-center justify-between px-4 py-3 bg-[#4a266a] shrink-0">
+        <h2 class="font-oswald font-bold text-lg text-[#f2c200] uppercase">Paramètres</h2>
+        <button id="btn-close-settings" class="text-white p-2" aria-label="Fermer">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto modal-scroll p-4 space-y-6">
+
+        <!-- Section Nouveau Match -->
+        <section class="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
+          <h3 class="font-bold text-white uppercase text-sm mb-3">Nouveau Match</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs text-white/60 mb-1">Adversaire</label>
+              <input id="inp-opponent" type="text" placeholder="Nom équipe" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs text-white/60 mb-1">G1 Nom</label>
+                <input id="inp-g1-name" type="text" placeholder="Pesic" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
+              </div>
+              <div>
+                <label class="block text-xs text-white/60 mb-1">G1 N°</label>
+                <input id="inp-g1-num" type="text" placeholder="1" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs text-white/60 mb-1">G2 Nom</label>
+                <input id="inp-g2-name" type="text" placeholder="Biosca" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
+              </div>
+              <div>
+                <label class="block text-xs text-white/60 mb-1">G2 N°</label>
+                <input id="inp-g2-num" type="text" placeholder="12" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
+              </div>
+            </div>
+            <button id="btn-start-match" class="w-full py-3 rounded-lg bg-[#4a266a] text-[#f2c200] font-bold uppercase tracking-wide">
+              Lancer le match
+            </button>
+          </div>
+        </section>
+
+        <!-- Section Seuils Visuels -->
+        <section class="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
+          <h3 class="font-bold text-white uppercase text-sm mb-3">Seuils Visuels</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs text-white/60 mb-1">% d'arrêts bas (Rouge) : <span id="val-percent-low" class="text-white font-bold">30</span>%</label>
+              <input id="inp-percent-low" type="range" min="0" max="100" value="30" class="w-full accent-[#f2c200]" />
+            </div>
+            <div>
+              <label class="block text-xs text-white/60 mb-1">% d'arrêts moyen (Orange) : <span id="val-percent-mid" class="text-white font-bold">40</span>%</label>
+              <input id="inp-percent-mid" type="range" min="0" max="100" value="40" class="w-full accent-[#f2c200]" />
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-xs text-white/60 mb-1">Série basse</label>
+                <input id="inp-color-low" type="color" value="#10B981" class="w-full h-10 rounded-lg bg-slate-900 border border-slate-600" />
+              </div>
+              <div>
+                <label class="block text-xs text-white/60 mb-1">Série moyenne</label>
+                <input id="inp-color-mid" type="color" value="#F59E0B" class="w-full h-10 rounded-lg bg-slate-900 border border-slate-600" />
+              </div>
+              <div>
+                <label class="block text-xs text-white/60 mb-1">Série haute</label>
+                <input id="inp-color-high" type="color" value="#FF0000" class="w-full h-10 rounded-lg bg-slate-900 border border-slate-600" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-white/60 mb-1">Palier critique série (buts) : <span id="val-streak-high" class="text-white font-bold">5</span></label>
+              <input id="inp-streak-high" type="range" min="1" max="10" value="5" class="w-full accent-[#f2c200]" />
+            </div>
+          </div>
+        </section>
+
+        <!-- Section Données -->
+        <section class="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
+          <h3 class="font-bold text-white uppercase text-sm mb-3">Données</h3>
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btn-export-json" class="py-2.5 rounded-lg bg-slate-700 text-white font-semibold text-sm">Exporter JSON</button>
+              <button id="btn-export-csv" class="py-2.5 rounded-lg bg-slate-700 text-white font-semibold text-sm">Exporter CSV</button>
+            </div>
+            <button id="btn-clear-data" class="w-full py-2.5 rounded-lg bg-red-700 text-white font-bold text-sm uppercase tracking-wide">
+              Effacer toutes les données
+            </button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODALE CONFIRMATION ================= -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-6">
+    <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-sm border border-slate-600">
+      <h3 class="font-bold text-white text-lg mb-2">Confirmer</h3>
+      <p id="confirm-message" class="text-white/70 text-sm mb-5">Êtes-vous sûr ?</p>
+      <div class="grid grid-cols-2 gap-3">
+        <button id="btn-confirm-cancel" class="py-2.5 rounded-lg bg-slate-700 text-white font-semibold">Annuler</button>
+        <button id="btn-confirm-ok" class="py-2.5 rounded-lg bg-red-700 text-white font-bold">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
