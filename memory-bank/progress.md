@@ -16,6 +16,17 @@
 - [x] Création des icônes PWA (`icons/icon-192.png`, `icons/icon-512.png`).
 - [x] Implémentation de la logique métier (Event Sourcing, séries, penaltys, mi-temps, undo).
 - [x] Implémentation du stockage localStorage, export JSON/CSV, Wake Lock, Service Worker.
+- [x] Affichage du nom du GB actif dans le bloc "Série en cours".
+- [x] Affichage "PENALTY - [GB]" dans le bloc série quand un penalty est actif (masque la valeur + le label).
+- [x] Retour automatique au GB de match après l'enregistrement d'un penalty (réaffiche sa série).
+- [x] Affichage des stats penaltys dans les ratios (GB actif, GB banc, global) au format `3/11 (p 2/3)`.
+- [x] Alignement de la hauteur du conteneur des boutons G1/G2 sur celle du conteneur MT1/MT2.
+- [x] Refonte de la section "Seuils Visuels" (% d'arrêts) sur 1 ligne : `0% [couleur rouge] [seuil 25%] [couleur orange] [seuil 35%] [couleur vert] 100%` (sans barre de progression).
+- [x] Ajout des couleurs par palier de buts encaissés (`streak_colors`) : nombre d'arrêts critiques (5 par défaut) + couleur par palier.
+- [x] Création du sélecteur de couleur simplifié (`createColorPicker`) avec palette de swatches vert→orange→rouge.
+- [x] Déclinaison automatique des couleurs des paliers (`generateStreakColors`) en **gradation naturelle** du vert clair au rouge vif (via `generateGradientPalette` + interpolation HSL), toutes couleurs différentes, adaptée au nombre de paliers.
+- [x] Palette de couleurs simplifiée (`COLOR_PALETTE`) en gradation naturelle vert clair→rouge vif (`generateGradientPalette(9)`, 9 nuances franches).
+- [x] Assombrissement de la gradation (luminosité 45%→35%) : le vert clair est plus faible que le vert foncé, et toutes les couleurs restent lisibles avec le texte blanc dans `#streak-block`.
 
 ## Prochaines Étapes (Backlog)
 

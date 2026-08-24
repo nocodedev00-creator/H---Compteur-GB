@@ -4,7 +4,16 @@
  * ============================================================ */
 
 
-const CACHE_NAME = 'hbc-nantes-live-v1';
+
+const CACHE_NAME = 'hbc-nantes-live-v9';
+
+
+
+
+
+
+
+
 
 // Ressources locales à mettre en cache (hors-ligne)
 const CORE_ASSETS = [

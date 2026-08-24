@@ -87,19 +87,23 @@
   </header>
 
   <!-- ================= SÉLECTEURS RAPIDES ================= -->
-  <div class="flex items-center gap-2 px-3 py-2 bg-slate-900/80 border-b border-slate-800 shrink-0">
-    <!-- Bascule MT1/MT2 -->
-    <div class="flex rounded-lg overflow-hidden border border-slate-700">
-      <button id="btn-mt1" class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide bg-[#4a266a] text-[#f2c200]">MT1</button>
-      <button id="btn-mt2" class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide bg-slate-800 text-white/60">MT2</button>
+  <div class="flex items-stretch gap-2 px-3 py-2 bg-slate-900/80 border-b border-slate-800 shrink-0">
+    <!-- Bascule MT1/MT2 (largeur stricte, sans espace superflu) -->
+    <div class="flex rounded-xl overflow-hidden border-2 border-[#4a266a] shadow-lg shrink-0">
+      <button id="btn-mt1" class="px-2 py-3 text-base font-black uppercase tracking-wide bg-[#4a266a] text-[#f2c200]">MT1</button>
+      <button id="btn-mt2" class="px-2 py-3 text-base font-black uppercase tracking-wide bg-slate-800 text-white/60">MT2</button>
     </div>
-    <div class="flex-1"></div>
-    <!-- Bascule Gardien -->
-    <div class="flex rounded-lg overflow-hidden border border-slate-700">
-      <button id="btn-g1" class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide bg-[#4a266a] text-[#f2c200]">G1</button>
-      <button id="btn-g2" class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide bg-slate-800 text-white/60">G2</button>
+
+    <!-- Bascule Gardien (prend toute la largeur disponible, 2 boutons égaux) -->
+    <div class="flex flex-1 rounded-xl overflow-hidden border-2 border-[#4a266a] shadow-lg min-w-0">
+      <button id="btn-g1" class="flex-1 px-2 py-2 text-sm font-black uppercase tracking-wide bg-[#4a266a] text-[#f2c200] min-w-0 leading-tight line-clamp-2 h-full">GB1</button>
+      <button id="btn-g2" class="flex-1 px-2 py-2 text-sm font-black uppercase tracking-wide bg-slate-800 text-white/60 min-w-0 leading-tight line-clamp-2 h-full">GB2</button>
     </div>
+
+
+
   </div>
+
 
   <!-- ================= ZONE STATS CENTRALE ================= -->
   <main class="flex-1 flex flex-col px-4 py-3 gap-3 overflow-hidden">
@@ -110,25 +114,29 @@
       <div class="bg-slate-800/60 rounded-xl p-2 text-center border border-slate-700">
         <div id="gb-active-name" class="text-[10px] font-bold uppercase text-white/70 truncate">GB Actif</div>
         <div id="gb-active-percent" class="font-oswald font-bold text-3xl leading-tight">0%</div>
-        <div class="text-[10px] text-white/50">arrêts</div>
+        <div id="gb-active-ratio" class="font-oswald font-bold text-base leading-tight">0/0</div>
+
       </div>
       <!-- GB banc -->
       <div class="bg-slate-800/60 rounded-xl p-2 text-center border border-slate-700">
         <div id="gb-bench-name" class="text-[10px] font-bold uppercase text-white/70 truncate">GB Banc</div>
         <div id="gb-bench-percent" class="font-oswald font-bold text-3xl leading-tight">0%</div>
-        <div class="text-[10px] text-white/50">arrêts</div>
+        <div id="gb-bench-ratio" class="font-oswald font-bold text-base leading-tight">0/0</div>
+
       </div>
       <!-- Global -->
       <div class="bg-slate-800/60 rounded-xl p-2 text-center border border-slate-700">
         <div class="text-[10px] font-bold uppercase text-white/70">Global</div>
         <div id="gb-global-percent" class="font-oswald font-bold text-3xl leading-tight">0%</div>
-        <div class="text-[10px] text-white/50">2 GB</div>
+        <div id="gb-global-ratio" class="font-oswald font-bold text-base leading-tight">0/0</div>
+
       </div>
+
     </div>
 
     <!-- Bloc série en cours (gardien actif) -->
     <div id="streak-block" class="flex-1 flex flex-col items-center justify-center bg-slate-800/60 rounded-xl border border-slate-700 min-h-0">
-      <div class="text-xs font-bold uppercase text-white/60 tracking-widest">Série en cours</div>
+      <div id="streak-title" class="text-xs font-bold uppercase text-white/60 tracking-widest">Série en cours</div>
       <div id="streak-value" class="font-oswald font-black text-6xl leading-none mt-1">0</div>
       <div id="streak-label" class="font-oswald font-semibold text-2xl uppercase tracking-wider mt-1">—</div>
     </div>
@@ -176,23 +184,25 @@
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-xs text-white/60 mb-1">G1 Nom</label>
-                <input id="inp-g1-name" type="text" placeholder="Pesic" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
+                <label class="block text-xs text-white/60 mb-1">GB1 Nom</label>
+                <input id="inp-g1-name" type="text" placeholder="GB1" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
               </div>
               <div>
-                <label class="block text-xs text-white/60 mb-1">G1 N°</label>
+                <label class="block text-xs text-white/60 mb-1">GB1 N°</label>
                 <input id="inp-g1-num" type="text" placeholder="1" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
               </div>
+
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-xs text-white/60 mb-1">G2 Nom</label>
-                <input id="inp-g2-name" type="text" placeholder="Biosca" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
+                <label class="block text-xs text-white/60 mb-1">GB2 Nom</label>
+                <input id="inp-g2-name" type="text" placeholder="GB2" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
               </div>
               <div>
-                <label class="block text-xs text-white/60 mb-1">G2 N°</label>
+                <label class="block text-xs text-white/60 mb-1">GB2 N°</label>
                 <input id="inp-g2-num" type="text" placeholder="12" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
               </div>
+
             </div>
             <button id="btn-start-match" class="w-full py-3 rounded-lg bg-[#4a266a] text-[#f2c200] font-bold uppercase tracking-wide">
               Lancer le match
@@ -202,33 +212,26 @@
 
         <!-- Section Seuils Visuels -->
         <section class="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
-          <h3 class="font-bold text-white uppercase text-sm mb-3">Seuils Visuels</h3>
+          <h3 class="font-bold text-white uppercase text-sm mb-3">% D'ARRÊTS</h3>
           <div class="space-y-4">
-            <div>
-              <label class="block text-xs text-white/60 mb-1">% d'arrêts bas (Rouge) : <span id="val-percent-low" class="text-white font-bold">30</span>%</label>
-              <input id="inp-percent-low" type="range" min="0" max="100" value="30" class="w-full accent-[#f2c200]" />
+            <!-- Ligne unique : 0% [couleur rouge] [seuil] [couleur orange] [seuil] [couleur vert] 100% -->
+            <div class="flex items-center gap-2">
+              <span class="text-white/60 text-xs font-bold shrink-0">0%</span>
+              <div id="picker-color-high" class="shrink-0"></div>
+              <input id="inp-percent-low" type="number" min="0" max="100" value="25" class="w-14 bg-slate-900 border border-slate-600 rounded-lg px-1 py-1.5 text-white text-center text-sm shrink-0" />
+              <div id="picker-color-mid" class="shrink-0"></div>
+              <input id="inp-percent-mid" type="number" min="0" max="100" value="35" class="w-14 bg-slate-900 border border-slate-600 rounded-lg px-1 py-1.5 text-white text-center text-sm shrink-0" />
+              <div id="picker-color-low" class="shrink-0"></div>
+              <span class="text-white/60 text-xs font-bold shrink-0">100%</span>
             </div>
-            <div>
-              <label class="block text-xs text-white/60 mb-1">% d'arrêts moyen (Orange) : <span id="val-percent-mid" class="text-white font-bold">40</span>%</label>
-              <input id="inp-percent-mid" type="range" min="0" max="100" value="40" class="w-full accent-[#f2c200]" />
+
+            <!-- Série de buts : nombre d'arrêts critiques + couleur par palier -->
+            <div class="border-t border-slate-700 pt-3">
+              <label class="block text-xs text-white/60 mb-1">Nombre d'arrêts critiques</label>
+              <input id="inp-streak-high" type="number" min="1" max="10" value="5" class="w-20 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-center" />
             </div>
-            <div class="grid grid-cols-3 gap-2">
-              <div>
-                <label class="block text-xs text-white/60 mb-1">Série basse</label>
-                <input id="inp-color-low" type="color" value="#10B981" class="w-full h-10 rounded-lg bg-slate-900 border border-slate-600" />
-              </div>
-              <div>
-                <label class="block text-xs text-white/60 mb-1">Série moyenne</label>
-                <input id="inp-color-mid" type="color" value="#F59E0B" class="w-full h-10 rounded-lg bg-slate-900 border border-slate-600" />
-              </div>
-              <div>
-                <label class="block text-xs text-white/60 mb-1">Série haute</label>
-                <input id="inp-color-high" type="color" value="#FF0000" class="w-full h-10 rounded-lg bg-slate-900 border border-slate-600" />
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs text-white/60 mb-1">Palier critique série (buts) : <span id="val-streak-high" class="text-white font-bold">5</span></label>
-              <input id="inp-streak-high" type="range" min="1" max="10" value="5" class="w-full accent-[#f2c200]" />
+            <div id="streak-colors-container" class="space-y-2">
+              <!-- Paliers générés dynamiquement -->
             </div>
           </div>
         </section>
