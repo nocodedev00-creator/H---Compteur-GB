@@ -375,14 +375,23 @@ function getPercentColor(percent, settings) {
 }
 
 /**
+ * Crée automatiquement un match par défaut si aucun match n'est lancé,
+ * afin de pouvoir utiliser l'application immédiatement (sans passer par les paramètres).
+ */
+function ensureMatch() {
+  if (!state.current_match) {
+    startNewMatch('Adversaire', 'GB1', '', 'GB2', '');
+  }
+}
+
+/**
  * Enregistre une action (BUT / ARRÊT) en tant qu'événement horodaté.
  * @param {'BUT'|'ARRET'} action
  */
 function recordAction(action) {
-  if (!state.current_match) {
-    alert('Veuillez d\'abord lancer un match dans les paramètres.');
-    return;
-  }
+  // Permet d'utiliser l'app sans lancer de match : création auto d'un match par défaut
+  ensureMatch();
+
   const event = {
     id: generateUUID(),
     timestamp: Date.now(),
