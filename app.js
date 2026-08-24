@@ -810,12 +810,20 @@ function bindEvents() {
     state.settings.thresholds.percent_mid = clamp(parseInt(e.target.value, 10) || 0, 0, 100);
     saveState(); renderAll();
   });
-  document.getElementById('inp-streak-high').addEventListener('input', (e) => {
-    state.settings.streak_high_threshold = clamp(parseInt(e.target.value, 10) || 1, 1, 10);
+  // Stepper "Nombre d'arrêts critiques" : incrément/décrément de 1 en 1 (mobile-friendly)
+  const applyStreakHigh = (value) => {
+    state.settings.streak_high_threshold = clamp(value, 1, 10);
     // Régénère la déclinaison automatique des couleurs selon le nouveau nombre de paliers
     state.settings.streak_colors = generateStreakColors(state.settings.streak_high_threshold);
     saveState(); renderAll();
+  };
+  document.getElementById('btn-streak-minus').addEventListener('click', () => {
+    applyStreakHigh(state.settings.streak_high_threshold - 1);
   });
+  document.getElementById('btn-streak-plus').addEventListener('click', () => {
+    applyStreakHigh(state.settings.streak_high_threshold + 1);
+  });
+
 
   // Export
   document.getElementById('btn-export-json').addEventListener('click', () => exportHistory('json'));

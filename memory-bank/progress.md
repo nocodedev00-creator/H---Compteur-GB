@@ -35,6 +35,8 @@
 - [x] Déclinaison automatique des couleurs des paliers (`generateStreakColors`) en **gradation naturelle** du vert clair au rouge vif (via `generateGradientPalette` + interpolation HSL), toutes couleurs différentes, adaptée au nombre de paliers.
 - [x] Palette de couleurs simplifiée (`COLOR_PALETTE`) en gradation naturelle vert clair→rouge vif (`generateGradientPalette(9)`, 9 nuances franches).
 - [x] Gradation claire des couleurs des paliers : saturation (85%) et luminosité (45%) constantes, seule la teinte varie (120°→0°). Pas de variations de luminosité confuses, texte blanc lisible dans `#streak-block`.
+- [x] Déploiement V1 sur GitHub Pages. Correction du cache Service Worker : incrémentation du `CACHE_NAME` à `v10` pour forcer la mise à jour des navigateurs (stratégie cache-first bloquait l'affichage de la nouvelle version).
+
 
 ## Prochaines Étapes (Backlog)
 

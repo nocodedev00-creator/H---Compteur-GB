@@ -239,8 +239,13 @@
             <!-- Série de buts : nombre d'arrêts critiques + couleur par palier -->
             <div class="border-t border-slate-700 pt-3">
               <label class="block text-xs text-white/60 mb-1">Nombre d'arrêts critiques</label>
-              <input id="inp-streak-high" type="number" min="1" max="10" value="5" class="w-20 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-center" />
+              <div class="flex items-center gap-2">
+                <button id="btn-streak-minus" type="button" class="w-10 h-10 rounded-lg bg-slate-700 text-white font-black text-xl leading-none">−</button>
+                <input id="inp-streak-high" type="number" min="1" max="10" value="5" readonly class="w-16 bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-white text-center text-lg font-bold" />
+                <button id="btn-streak-plus" type="button" class="w-10 h-10 rounded-lg bg-slate-700 text-white font-black text-xl leading-none">+</button>
+              </div>
             </div>
+
             <div id="streak-colors-container" class="space-y-2">
               <!-- Paliers générés dynamiquement -->
             </div>
