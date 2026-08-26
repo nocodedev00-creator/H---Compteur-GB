@@ -2,7 +2,11 @@
 
 ## Travail en Cours
 
-Le projet **HBC Nantes Live Stats Gardiens** est en phase d'implémentation initiale. Le squelette PWA est créé et la logique métier est implémentée dans `app.js`. Prochaine étape : tests manuels dans un navigateur.
+Le projet **HBC Nantes Live Stats Gardiens** est en phase d'implémentation. Le squelette PWA est créé et la logique métier est implémentée dans `app.js`. Dernières corrections : **réinitialisation des séries à chaque changement de gardien** (régression corrigée) + purge des resets de série au changement de mi-temps + **graphique fin de match en alternance des GB sur une seule ligne** (plus de superposition) + **stats des GB par mi-temps et total match + boutons d'export image PNG / JSON / CSV dans la modale fin de match**.
+
+
+
+
 
 ## Objectifs de la Session
 
@@ -11,6 +15,8 @@ Le projet **HBC Nantes Live Stats Gardiens** est en phase d'implémentation init
 3. Créer les icônes PWA. ✅
 4. Tester l'application dans un navigateur (lancer un match, enregistrer des actions, vérifier les règles métier).
 5. Afficher le nom du GB actif dans le bloc "Série en cours". ✅
+6. Ajouter le bouton "Fin de match" avec modale de séries par mi-temps. ✅
+
 ## Décisions Utilisateur (Session)
 
 - **Structure** : PWA Vanilla légère en 4 fichiers (`index.html`, `app.js`, `manifest.json`, `sw.js`) + dossier `icons/`.
@@ -50,7 +56,10 @@ Le projet **HBC Nantes Live Stats Gardiens** est en phase d'implémentation init
 
 ## Points d'Attention (Règles Métier Critiques)
 
-- **Indépendance des séries** : Série propre à chaque gardien, mise en pause/reprise au changement.
-- **Penaltys** : Ne cassent pas la série, intégrés au % global, tagués `isPenalty`.
+- **Reset des séries à chaque changement de gardien** : Quand un GB sort (changement normal), sa série est remise à 0 (`ui.gbStreakReset[leavingGb] = Date.now()`). Quand il revient, sa série repart de zéro. Exception pénalty : le GB qui sort pendant un pénalty **conserve** sa série (il sera rétabli automatiquement).
+- **Reset des séries à chaque mi-temps** : Le filtre `e.period === period` dans `computeStreak` brise naturellement les séries au passage MT1→MT2. Les timestamps de reset (`gbStreakReset`) sont purgés au changement de période (`ui.gbStreakReset = {}`).
+- **Penaltys** : Ne cassent pas la série, intégrés au % global, tagués `isPenalty`. Un pénalty compte dans la série du GB uniquement si `countInStreak === true` (pas de changement de GB pendant le pénalty, ou re-sélection après pénalty).
 - **Mi-temps** : Reset des séries au passage MT1→MT2, % d'arrêts conservé (cumul match entier).
 - **Undo** : Suppression de la dernière ligne d'événements + recalcul instantané.
+
+

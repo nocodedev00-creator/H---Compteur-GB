@@ -44,6 +44,21 @@
 - [x] Correction centrage colonne droite du bloc série : passage de `shrink-0` à `flex-1 min-w-0` pour que la colonne occupe tout l'espace restant et que son contenu soit centré (élimine l'espace libre à droite).
 - [x] Titre "PENALTY" en **gros** (`text-4xl`, couleur `#f2c200`) dans le bloc série quand un penalty est actif (au lieu du petit libellé "Série en cours").
 - [x] Remise à 0 **définitive** de la série du GB qui entre pendant un penalty (`ui.gbStreakReset[gbId]` + `computeStreak` ignore les événements avant le reset). Scénario 3 : si le user re-sélectionne ce GB après le penalty, le dernier péno de ce GB est marqué `countInStreak = true` → il conserve sa série avec le péno.
+- [x] Bouton "Fin de match" (`#btn-end-match`) à droite de `#btn-mt2`, même largeur (conteneur flex identique, texte "Fin" = 3 caractères comme "MT2"). Le bloc gardien (`flex-1`) est réduit proportionnellement pour laisser la place.
+- [x] Modale "Fin de match" (`#end-match-modal`) : affiche pour chaque mi-temps (MT1, MT2) un **graphique en ligne SVG** (`renderStreakLineChart`) montrant l'évolution de la série d'arrêts dans le temps pour les 2 gardiens. Axe X = événements successifs, axe Y = valeur de la série. La ligne **monte** quand il y a des arrêts, **descend à 0** quand un but est encaissé. **GB1 en jaune** (`#f2c200`), **GB2 en bleu clair** (`#38bdf8`). Points rouges = buts encaissés. Légende avec noms des gardiens. Résumé par mi-temps (nb arrêts / nb buts). Fonctions : `computeStreakTimeline`, `renderStreakLineChart`, `renderEndMatchModal`, `openEndMatchModal`, `closeEndMatchModal`.
+- [x] **Correction régression : reset des séries à chaque changement de gardien.** `switchGuardian` remet désormais la série du GB qui SORT à 0 (`ui.gbStreakReset[leavingGb] = Date.now()`) en changement normal. Exception pénalty : le GB qui sort pendant un pénalty conserve sa série (il sera rétabli automatiquement). `computeMergedStreakTimeline` (graphique fin de match) applique les mêmes règles (filtre `countInStreak` + reset).
+- [x] **Purge des resets de série au changement de mi-temps.** `switchPeriod` vide `ui.gbStreakReset = {}` pour éviter les re-sélections de pénalty obsolètes d'une période à l'autre.
+- [x] **Graphique fin de match en alternance des GB sur une seule ligne.** `computeStreakTimeline` remplacé par `computeMergedStreakTimeline` : une seule timeline qui alterne les GB (point de reset à 0 au changement de GB). `renderStreakLineChart` dessine une seule ligne dont la couleur change selon le GB actif (GB1 jaune, GB2 bleu), plus de superposition de 2 lignes.
+- [x] **Stats des GB par mi-temps + total match + export dans la modale fin de match.** `renderEndMatchModal` affiche désormais : pour chaque mi-temps, les stats des 2 GB (arrêts, buts, %, penaltys) sous le graphique ; en bas du 2ème graph, les stats totales du match (GB1, GB2, Global) ; des boutons d'export image PNG / JSON / CSV (toutes les données collectées). Nouvelles fonctions : `computeGbStats`, `renderGbStatsRow`, `exportEndMatchImage`.
+- [x] **Export image PNG de la page fin de match.** Bouton "Exporter cette page en image" dans la modale fin de match. Utilise html2canvas (CDN) pour capturer le contenu (graphiques + stats) en PNG haute résolution (scale 2), avec un en-tête professionnel (adversaire + date). Format idéal pour envoi email/WhatsApp. Cache Service Worker incrémenté à `v11`.
+- [x] **Affichage adversaire + date sur la page fin de match.** En-tête de section en haut de la modale (adversaire en gros doré + date). Les boutons d'export sont masqués lors de la capture d'image (`#end-match-export-buttons` caché avant html2canvas, restauré après) pour ne pas apparaître sur l'image exportée.
+
+
+
+
+
+
+
 
 
 

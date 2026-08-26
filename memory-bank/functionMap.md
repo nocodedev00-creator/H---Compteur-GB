@@ -28,6 +28,18 @@ Ce document recense les fonctions clés du projet pour faciliter la maintenance 
 | `modal.js` | `openSettings()` / `closeSettings()` | Ouvre/ferme la modale Paramètres (fond plein en superposition). |
 | `modal.js` | `startNewMatch(formData)` | Archive le match en cours dans `history` et lance un nouveau match (date auto). |
 | `modal.js` | `updateThresholds(settings)` | Met à jour les paliers de pourcentages et les couleurs des séries. |
+| `modal.js` | `openEndMatchModal()` / `closeEndMatchModal()` | Ouvre/ferme la modale "Fin de match" (séries par mi-temps). |
+| `modal.js` | `renderEndMatchModal()` | Génère le contenu de la modale : pour chaque mi-temps, un graphique en ligne (alternance des GB) + stats des 2 GB ; en bas du 2ème graph, stats totales du match (GB1, GB2, Global) ; boutons d'export image PNG / JSON / CSV. |
+| `modal.js` | `exportEndMatchImage()` | Exporte la page "Fin de match" (graphiques + stats) en image PNG avec en-tête professionnel (adversaire + date). Format idéal pour envoi email/WhatsApp. Utilise html2canvas. |
+
+| `modal.js` | `computeMergedStreakTimeline(events, period)` | Calcule la série en cours à chaque événement sur une période, en ALTERNANT les gardiens sur une seule timeline (point de reset à 0 au changement de GB). |
+| `modal.js` | `renderStreakLineChart(events, period, gardiens)` | Génère un graphique en ligne SVG unique (axe X = événements, axe Y = série d'arrêts). La couleur de la ligne change selon le GB actif (GB1 jaune, GB2 bleu). |
+| `modal.js` | `computeGbStats(events, gbId, period)` | Calcule les stats d'un gardien (arrêts, buts, %, penaltys) sur une période donnée ou tout le match. |
+| `modal.js` | `renderGbStatsRow(gbId, stats, gardiens, isLast)` | Génère une ligne de stats d'un gardien (nom + arrêts/buts/% + penaltys). |
+
+
+
+
 
 ## 📁 `src/services/` (Données & APIs)
 

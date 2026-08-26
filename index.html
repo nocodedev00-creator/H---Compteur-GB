@@ -14,6 +14,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- html2canvas CDN (export image de la page fin de match) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
   <!-- Google Fonts : Montserrat / Oswald -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -88,13 +91,16 @@
 
   <!-- ================= SÉLECTEURS RAPIDES ================= -->
   <div class="flex items-stretch gap-2 px-3 py-2 bg-slate-900/80 border-b border-slate-800 shrink-0">
-    <!-- Bascule MT1/MT2 (largeur stricte, sans espace superflu) -->
+    <!-- Bascule MT1/MT2 + Fin de match (même largeur, dans le même conteneur) -->
     <div class="flex rounded-xl overflow-hidden border-2 border-[#4a266a] shadow-lg shrink-0">
       <button id="btn-mt1" class="px-2 py-3 text-base font-black uppercase tracking-wide bg-[#4a266a] text-[#f2c200]">MT1</button>
       <button id="btn-mt2" class="px-2 py-3 text-base font-black uppercase tracking-wide bg-slate-800 text-white/60">MT2</button>
+      <button id="btn-end-match" class="px-2 py-3 text-base font-black uppercase tracking-wide bg-slate-800 text-white/60">Fin</button>
     </div>
 
-    <!-- Bascule Gardien (prend toute la largeur disponible, 2 boutons égaux) -->
+
+
+    <!-- Bascule Gardien (prend la largeur disponible restante, 2 boutons égaux) -->
     <div class="flex flex-1 rounded-xl overflow-hidden border-2 border-[#4a266a] shadow-lg min-w-0">
       <button id="btn-g1" class="flex-1 px-2 py-2 text-sm font-black uppercase tracking-wide bg-[#4a266a] text-[#f2c200] min-w-0 leading-tight line-clamp-2 h-full">GB1</button>
       <button id="btn-g2" class="flex-1 px-2 py-2 text-sm font-black uppercase tracking-wide bg-slate-800 text-white/60 min-w-0 leading-tight line-clamp-2 h-full">GB2</button>
@@ -103,6 +109,7 @@
 
 
   </div>
+
 
 
   <!-- ================= ZONE STATS CENTRALE ================= -->
@@ -199,9 +206,14 @@
           <h3 class="font-bold text-white uppercase text-sm mb-3">Nouveau Match</h3>
           <div class="space-y-3">
             <div>
+              <label class="block text-xs text-white/60 mb-1">Date du match</label>
+              <input id="inp-date" type="date" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
+            </div>
+            <div>
               <label class="block text-xs text-white/60 mb-1">Adversaire</label>
               <input id="inp-opponent" type="text" placeholder="Nom équipe" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white" />
             </div>
+
             <div class="grid grid-cols-2 gap-2">
               <div>
                 <label class="block text-xs text-white/60 mb-1">GB1 Nom</label>
@@ -279,8 +291,28 @@
     </div>
   </div>
 
+  <!-- ================= MODALE FIN DE MATCH ================= -->
+  <div id="end-match-modal" class="hidden fixed inset-0 z-50 bg-slate-900">
+    <div class="flex flex-col h-full">
+      <div class="flex items-center justify-between px-4 py-3 bg-[#4a266a] shrink-0">
+        <h2 class="font-oswald font-bold text-lg text-[#f2c200] uppercase">Fin de match</h2>
+        <button id="btn-close-end-match" class="text-white p-2" aria-label="Fermer">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto modal-scroll p-4 space-y-6">
+        <!-- Séries par mi-temps pour chaque gardien -->
+        <div id="end-match-content" class="space-y-6">
+          <!-- Contenu généré dynamiquement par JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= MODALE CONFIRMATION ================= -->
   <div id="confirm-modal" class="hidden fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-6">
+
     <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-sm border border-slate-600">
       <h3 class="font-bold text-white text-lg mb-2">Confirmer</h3>
       <p id="confirm-message" class="text-white/70 text-sm mb-5">Êtes-vous sûr ?</p>

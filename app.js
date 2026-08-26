@@ -212,14 +212,15 @@ function saveState() {
 }
 
 /** Archive le match courant dans history et le remplace par un nouveau. */
-function startNewMatch(opponent, g1Name, g1Num, g2Name, g2Num) {
+function startNewMatch(opponent, g1Name, g1Num, g2Name, g2Num, date) {
   if (state.current_match && state.current_match.events.length > 0) {
     state.history.push(state.current_match);
   }
   state.current_match = {
     id: generateUUID(),
-    date: todayISO(),
+    date: date || todayISO(),
     opponent: opponent || 'Adversaire',
+
     gardiens: {
       G1: { name: g1Name || 'GB1', number: g1Num || '' },
       G2: { name: g2Name || 'GB2', number: g2Num || '' }
@@ -644,8 +645,434 @@ function renderStreak() {
 
 
 
+/* ============================================================
+ * 6bis. MODALE FIN DE MATCH - SÉRIES PAR MI-TEMPS
+ * ============================================================ */
+
+/**
+ * Calcule la série en cours à chaque événement sur une période, en ALTERNANT
+ * les gardiens sur une seule timeline. Quand le GB change, la série repart de 0
+ * (un point de reset à 0 est inséré pour rendre la transition visible).
+ * Les penaltys qui ne comptent pas dans la série (`countInStreak === false`)
+ * sont ignorés, ainsi que les événements antérieurs au reset de série du GB.
+ * @param {Array} events - événements du match
+ * @param {string} period - 'MT1' ou 'MT2'
+ * @returns {Array<{index:number, value:number, gb:string, reset?:boolean}>}
+ */
+function computeMergedStreakTimeline(events, period) {
+  const periodEvents = events.filter((e) => e.period === period);
+  const points = [];
+  let currentGb = null;
+  let pointIndex = 0;
+  // Série par gardien (indépendante) : on conserve la série de chaque GB
+  // pour gérer correctement les retours après pénalty (série conservée)
+  // vs les changements normaux (série remise à 0).
+  const streaks = { G1: 0, G2: 0 };
+
+  periodEvents.forEach((e) => {
+    // Ignore les penaltys qui ne comptent pas dans la série
+    if (e.isPenalty && !e.countInStreak) return;
+
+    // Changement de GB
+    if (e.activeGb !== currentGb) {
+      if (currentGb !== null) {
+        points.push({ index: pointIndex++, value: 0, gb: e.activeGb, reset: true });
+      }
+      currentGb = e.activeGb;
+      // Si le GB a été remis à 0 (reset posé par switchGuardian), sa série repart de 0.
+      // Sinon (retour après pénalty), on conserve la série précédente du GB.
+      const resetTime = ui.gbStreakReset[e.activeGb];
+      if (resetTime) {
+        streaks[e.activeGb] = 0;
+      }
+    }
+
+    if (e.action === 'ARRET') {
+      streaks[e.activeGb]++;
+    } else {
+      streaks[e.activeGb] = 0; // But encaissé → la série retombe à 0
+    }
+    points.push({ index: pointIndex++, value: streaks[e.activeGb], gb: currentGb });
+  });
+
+  return points;
+}
+
+
+
+
+/**
+ * Génère un graphique en ligne SVG représentant l'évolution de la série d'arrêts
+ * dans le temps sur une période donnée, en ALTERNANT les gardiens sur une seule
+ * ligne (pas de superposition). La couleur de la ligne change selon le gardien
+ * actif (GB1 en jaune, GB2 en bleu). Quand le gardien change, la série repart de 0.
+ * - Axe X : les événements successifs (ligne du temps)
+ * - Axe Y : la valeur de la série d'arrêts en cours
+ * - La ligne monte quand il y a des arrêts, descend à 0 quand un but est encaissé
+ * @param {Array} events - événements du match
+ * @param {string} period - 'MT1' ou 'MT2'
+ * @param {Object} gardiens - { G1: {name}, G2: {name} }
+ * @returns {string} HTML SVG
+ */
+function renderStreakLineChart(events, period, gardiens) {
+  const W = 320; // largeur SVG
+  const H = 160; // hauteur SVG
+  const PAD_L = 24; // padding gauche (axe Y)
+  const PAD_R = 10; // padding droite
+  const PAD_T = 10; // padding haut
+  const PAD_B = 20; // padding bas (axe X)
+
+  const colors = { G1: '#f2c200', G2: '#38bdf8' }; // Jaune pour GB1, Bleu clair pour GB2
+
+  // Timeline unique alternant les gardiens
+  const points = computeMergedStreakTimeline(events, period);
+  if (points.length === 0) {
+    return '<div class="text-white/40 text-sm text-center py-3">Aucune action sur cette période</div>';
+  }
+
+  let maxStreak = 1;
+  points.forEach((p) => { if (p.value > maxStreak) maxStreak = p.value; });
+
+  // Dimensions utiles du graphique
+  const plotW = W - PAD_L - PAD_R;
+  const plotH = H - PAD_T - PAD_B;
+  const total = points.length;
+
+  // Fonction de mapping : index → x, value → y
+  const xFor = (idx) => PAD_L + (total <= 1 ? plotW / 2 : (idx / (total - 1)) * plotW);
+  const yFor = (val) => PAD_T + plotH - (val / maxStreak) * plotH;
+
+  // Construit les segments de ligne par gardien (la couleur change au changement de GB)
+  let paths = '';
+  let segStart = 0;
+  let segGb = points[0].gb;
+  for (let i = 1; i <= points.length; i++) {
+    const isNew = i === points.length || points[i].gb !== segGb;
+    if (isNew) {
+      let d = `M ${xFor(points[segStart].index)} ${yFor(points[segStart].value)}`;
+      for (let j = segStart + 1; j < i; j++) {
+        d += ` L ${xFor(points[j].index)} ${yFor(points[j].value)}`;
+      }
+      paths += `<path d="${d}" fill="none" stroke="${colors[segGb]}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+      if (i < points.length) {
+        segGb = points[i].gb;
+        segStart = i;
+      }
+    }
+  }
+
+  // Points SVG (cercles) : blanc = arrêt, rouge = but encaissé, gris = reset de série
+  const dots = points.map((p) => {
+    const cx = xFor(p.index);
+    const cy = yFor(p.value);
+    let fill = '#ffffff';
+    if (p.reset) {
+      fill = '#94a3b8'; // gris = changement de gardien (série remise à 0)
+    } else if (p.value === 0 && p.index > 0) {
+      fill = '#b91c1c'; // rouge = but encaissé
+    }
+    return `<circle cx="${cx}" cy="${cy}" r="3" fill="${fill}" stroke="#0f172a" stroke-width="1"/>`;
+  }).join('');
+
+  // Grille horizontale (lignes de référence pour les valeurs de série)
+  let gridHtml = '';
+  for (let v = 1; v <= maxStreak; v++) {
+    const y = yFor(v);
+    gridHtml += `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#334155" stroke-width="0.5" stroke-dasharray="3,3"/>`;
+    gridHtml += `<text x="${PAD_L - 4}" y="${y + 3}" fill="#64748b" font-size="8" text-anchor="end">${v}</text>`;
+  }
+
+  // Légende
+  const legendHtml = `
+    <div class="flex items-center gap-4 mb-2">
+      <span class="flex items-center gap-1.5 text-xs text-white/70">
+        <span class="w-3 h-0.5 inline-block" style="background-color:${colors.G1}"></span>
+        ${gardiens.G1.name || 'GB1'}
+      </span>
+      <span class="flex items-center gap-1.5 text-xs text-white/70">
+        <span class="w-3 h-0.5 inline-block" style="background-color:${colors.G2}"></span>
+        ${gardiens.G2.name || 'GB2'}
+      </span>
+      <span class="flex items-center gap-1.5 text-xs text-white/50 ml-auto">
+        <span class="w-2 h-2 rounded-full inline-block bg-red-600"></span> But
+      </span>
+    </div>`;
+
+  return `
+    ${legendHtml}
+    <svg viewBox="0 0 ${W} ${H}" class="w-full h-auto" style="background-color:#1e293b;border-radius:8px;">
+      ${gridHtml}
+      ${paths}
+      ${dots}
+    </svg>`;
+}
+
+
+/**
+ * Calcule les stats d'un gardien sur une période donnée (ou tout le match si period = null).
+ * @param {Array} events - événements du match
+ * @param {string} gbId - 'G1' ou 'G2'
+ * @param {string|null} period - 'MT1', 'MT2' ou null (tout le match)
+ * @returns {{ saves:number, goals:number, shots:number, percent:number|null, penaltySaves:number, penaltyShots:number }}
+ */
+function computeGbStats(events, gbId, period) {
+  const gbEvents = events.filter((e) =>
+    e.activeGb === gbId &&
+    (period === null || e.period === period)
+  );
+  const saves = gbEvents.filter((e) => e.action === 'ARRET').length;
+  const goals = gbEvents.filter((e) => e.action === 'BUT').length;
+  const shots = gbEvents.length;
+  const percent = shots === 0 ? null : Math.round((saves / shots) * 100);
+  const penaltyEvents = gbEvents.filter((e) => e.isPenalty);
+  const penaltySaves = penaltyEvents.filter((e) => e.action === 'ARRET').length;
+  return { saves, goals, shots, percent, penaltySaves, penaltyShots: penaltyEvents.length };
+}
+
+/**
+ * Génère une ligne de stats d'un gardien (nom + arrêts/buts/% + penaltys).
+ * @param {string} gbId - 'G1' ou 'G2'
+ * @param {Object} stats - stats calculées par computeGbStats
+ * @param {Object} gardiens - { G1: {name}, G2: {name} }
+ * @param {boolean} isLast - si true, pas de bordure basse
+ * @returns {string} HTML
+ */
+function renderGbStatsRow(gbId, stats, gardiens, isLast) {
+  const name = gardiens[gbId].name || gbId;
+  const percentText = stats.percent === null ? '—' : stats.percent + '%';
+  const penaltyText = stats.penaltyShots === 0 ? '' : ` (p ${stats.penaltySaves}/${stats.penaltyShots})`;
+  return `
+    <div class="flex items-center justify-between py-1.5 ${isLast ? '' : 'border-b border-slate-700/50'}">
+      <span class="text-sm font-semibold text-white/80">${name}</span>
+      <span class="text-sm text-white/60">
+        <span class="text-emerald-400 font-bold">${stats.saves}</span> arrêts
+        <span class="mx-1 text-white/30">·</span>
+        <span class="text-red-400 font-bold">${stats.goals}</span> buts
+        <span class="mx-1 text-white/30">·</span>
+        <span class="text-[#f2c200] font-bold">${percentText}</span>${penaltyText}
+      </span>
+    </div>`;
+}
+
+/**
+ * Génère le contenu complet de la modale "Fin de match" :
+ * - pour chaque mi-temps : graphique en ligne (alternance des GB) + stats des 2 GB
+ * - en bas du 2ème graph : stats totales du match (GB1, GB2, Global)
+ * - boutons d'export (JSON / CSV) de toutes les données collectées
+ */
+function renderEndMatchModal() {
+  const container = document.getElementById('end-match-content');
+  if (!container) return;
+
+  const events = state.current_match ? state.current_match.events : [];
+  const gardiens = state.current_match ? state.current_match.gardiens : { G1: { name: 'GB1' }, G2: { name: 'GB2' } };
+
+  if (events.length === 0) {
+    container.innerHTML = `
+      <div class="bg-slate-800/60 rounded-xl p-6 border border-slate-700 text-center">
+        <p class="text-white/60 text-sm">Aucune donnée pour ce match.</p>
+      </div>`;
+    return;
+  }
+
+  let html = '';
+
+  // En-tête du match : adversaire + date (affiché sur la page ET sur l'image exportée)
+  const opponent = state.current_match ? state.current_match.opponent : 'Match';
+  const matchDate = state.current_match ? state.current_match.date : todayISO();
+  html += `
+    <section class="bg-slate-800/60 rounded-xl p-4 border border-slate-700 text-center">
+      <h3 class="font-oswald font-bold text-2xl text-[#f2c200] uppercase tracking-wide">${opponent}</h3>
+      <p class="text-white/60 text-sm mt-1">${matchDate}</p>
+    </section>`;
+
+  // Pour chaque mi-temps : graphique + stats des 2 GB
+  ['MT1', 'MT2'].forEach((period) => {
+
+    const periodEvents = events.filter((e) => e.period === period);
+    const saves = periodEvents.filter((e) => e.action === 'ARRET').length;
+    const goals = periodEvents.filter((e) => e.action === 'BUT').length;
+
+    const g1Stats = computeGbStats(events, 'G1', period);
+    const g2Stats = computeGbStats(events, 'G2', period);
+
+    html += `
+      <section class="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-oswald font-bold text-lg text-[#f2c200] uppercase">
+            ${period === 'MT1' ? 'Mi-temps 1' : 'Mi-temps 2'}
+          </h3>
+          <span class="text-xs text-white/50">
+            <span class="text-emerald-400 font-bold">${saves} arrêts</span>
+            <span class="mx-1">·</span>
+            <span class="text-red-400 font-bold">${goals} buts</span>
+          </span>
+        </div>
+        ${renderStreakLineChart(events, period, gardiens)}
+        <div class="mt-3 bg-slate-900/50 rounded-lg p-3">
+          ${renderGbStatsRow('G1', g1Stats, gardiens, false)}
+          ${renderGbStatsRow('G2', g2Stats, gardiens, true)}
+        </div>
+      </section>`;
+  });
+
+  // Stats totales du match (en bas du 2ème graph)
+  const g1Match = computeGbStats(events, 'G1', null);
+  const g2Match = computeGbStats(events, 'G2', null);
+  const matchSaves = events.filter((e) => e.action === 'ARRET').length;
+  const matchGoals = events.filter((e) => e.action === 'BUT').length;
+  const matchShots = events.length;
+  const matchPercent = matchShots === 0 ? null : Math.round((matchSaves / matchShots) * 100);
+  const matchPenaltyEvents = events.filter((e) => e.isPenalty);
+  const matchPenaltySaves = matchPenaltyEvents.filter((e) => e.action === 'ARRET').length;
+  const matchPenaltyText = matchPenaltyEvents.length === 0 ? '' : ` (p ${matchPenaltySaves}/${matchPenaltyEvents.length})`;
+
+  html += `
+    <section class="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-oswald font-bold text-lg text-[#f2c200] uppercase">Total Match</h3>
+        <span class="text-xs text-white/50">
+          <span class="text-emerald-400 font-bold">${matchSaves} arrêts</span>
+          <span class="mx-1">·</span>
+          <span class="text-red-400 font-bold">${matchGoals} buts</span>
+        </span>
+      </div>
+      <div class="bg-slate-900/50 rounded-lg p-3">
+        ${renderGbStatsRow('G1', g1Match, gardiens, false)}
+        ${renderGbStatsRow('G2', g2Match, gardiens, false)}
+        <div class="flex items-center justify-between py-1.5 border-t border-slate-700/50 mt-1 pt-2">
+          <span class="text-sm font-bold text-white">Global</span>
+          <span class="text-sm text-white/60">
+            <span class="text-emerald-400 font-bold">${matchSaves}</span> arrêts
+            <span class="mx-1 text-white/30">·</span>
+            <span class="text-red-400 font-bold">${matchGoals}</span> buts
+            <span class="mx-1 text-white/30">·</span>
+            <span class="text-[#f2c200] font-bold">${matchPercent === null ? '—' : matchPercent + '%'}</span>${matchPenaltyText}
+          </span>
+        </div>
+      </div>
+    </section>`;
+
+  // Boutons d'export (toutes les données collectées + image de la page)
+  // NB : ce bloc est masqué lors de la capture d'image (exportEndMatchImage)
+  html += `
+    <div id="end-match-export-buttons" class="flex flex-col gap-3 mt-4">
+      <button id="btn-export-image-modal" class="w-full px-4 py-3 rounded-xl bg-[#4a266a] border border-[#f2c200]/40 text-[#f2c200] font-bold text-sm hover:bg-[#5a307a] transition-colors flex items-center justify-center gap-2">
+        <i data-lucide="image" class="w-4 h-4"></i> Exporter cette page en image
+      </button>
+      <div class="flex gap-3">
+        <button id="btn-export-json-modal" class="flex-1 px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-white font-bold text-sm hover:bg-slate-700 transition-colors">
+          Export JSON
+        </button>
+        <button id="btn-export-csv-modal" class="flex-1 px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-white font-bold text-sm hover:bg-slate-700 transition-colors">
+          Export CSV
+        </button>
+      </div>
+    </div>`;
+
+
+  container.innerHTML = html;
+
+  // Bind les boutons d'export de la modale fin de match
+  document.getElementById('btn-export-image-modal').addEventListener('click', exportEndMatchImage);
+  document.getElementById('btn-export-json-modal').addEventListener('click', () => exportHistory('json'));
+  document.getElementById('btn-export-csv-modal').addEventListener('click', () => exportHistory('csv'));
+}
+
+/**
+ * Exporte la page "Fin de match" (graphiques + stats) en image PNG.
+ * Format idéal pour un envoi rapide par email ou WhatsApp (universel, lisible partout).
+ * Utilise html2canvas pour capturer le contenu de la modale.
+ */
+function exportEndMatchImage() {
+  const content = document.getElementById('end-match-content');
+  if (!content) return;
+
+  const btn = document.getElementById('btn-export-image-modal');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<span class="inline-block animate-spin">⏳</span> Génération...';
+  btn.disabled = true;
+
+  // Masque les boutons d'export pour qu'ils n'apparaissent PAS sur l'image
+  const exportButtons = document.getElementById('end-match-export-buttons');
+  if (exportButtons) exportButtons.style.display = 'none';
+
+  // Capture le contenu en image PNG haute résolution
+  html2canvas(content, {
+    backgroundColor: '#0f172a',
+    scale: 2, // Haute résolution pour un rendu net
+    useCORS: true,
+    logging: false
+  }).then((canvas) => {
+    // Restaure les boutons d'export
+    if (exportButtons) exportButtons.style.display = '';
+
+    // Ajoute un en-tête professionnel (adversaire + date) au-dessus de l'image
+    const opponent = state.current_match ? state.current_match.opponent : 'Match';
+    const date = state.current_match ? state.current_match.date : todayISO();
+    const headerCanvas = document.createElement('canvas');
+    const headerHeight = 80;
+    headerCanvas.width = canvas.width;
+    headerCanvas.height = canvas.height + headerHeight;
+    const ctx = headerCanvas.getContext('2d');
+
+    // Fond de l'en-tête (violet HBC Nantes)
+    ctx.fillStyle = '#4a266a';
+    ctx.fillRect(0, 0, headerCanvas.width, headerHeight);
+    // Ligne dorée
+    ctx.fillStyle = '#f2c200';
+    ctx.fillRect(0, headerHeight - 3, headerCanvas.width, 3);
+
+    // Titre
+    ctx.fillStyle = '#f2c200';
+    ctx.font = 'bold 32px Oswald, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('STAT-GB — FIN DE MATCH', headerCanvas.width / 2, 34);
+
+    // Sous-titre (adversaire + date)
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '18px Montserrat, Arial, sans-serif';
+    ctx.fillText(`${opponent} — ${date}`, headerCanvas.width / 2, 62);
+
+    // Colle le contenu capturé sous l'en-tête
+    ctx.drawImage(canvas, 0, headerHeight);
+
+    // Télécharge le PNG
+    const url = headerCanvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stat-gb_fin-match_${opponent.replace(/\s+/g, '_')}_${date}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // Restaure le bouton
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }).catch((err) => {
+    console.error('Erreur export image', err);
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  });
+}
+
+
+
+
+/** Ouvre la modale "Fin de match". */
+function openEndMatchModal() {
+  renderEndMatchModal();
+  document.getElementById('end-match-modal').classList.remove('hidden');
+}
+
+/** Ferme la modale "Fin de match". */
+function closeEndMatchModal() {
+  document.getElementById('end-match-modal').classList.add('hidden');
+}
+
 /** Toggle penalty : état visuel actif/inactif. */
 function renderPenalty() {
+
   const btn = document.getElementById('btn-penalty');
   btn.classList.toggle('penalty-active', ui.penaltyActive);
   btn.textContent = ui.penaltyActive ? 'Penalty actif ✓' : '7 Mètres / Penalty';
@@ -714,13 +1141,18 @@ function renderSettingsForm() {
 
   // Pré-remplir les champs du match si un match existe
   if (state.current_match) {
+    document.getElementById('inp-date').value = state.current_match.date || todayISO();
     document.getElementById('inp-opponent').value = state.current_match.opponent;
     document.getElementById('inp-g1-name').value = state.current_match.gardiens.G1.name;
     document.getElementById('inp-g1-num').value = state.current_match.gardiens.G1.number;
     document.getElementById('inp-g2-name').value = state.current_match.gardiens.G2.name;
     document.getElementById('inp-g2-num').value = state.current_match.gardiens.G2.number;
+  } else {
+    // Pas de match actif : date du jour par défaut
+    document.getElementById('inp-date').value = todayISO();
   }
 }
+
 
 /* ============================================================
  * 7. EXPORT (JSON / CSV)
@@ -819,7 +1251,12 @@ function bindEvents() {
   document.getElementById('btn-g1').addEventListener('click', () => switchGuardian('G1'));
   document.getElementById('btn-g2').addEventListener('click', () => switchGuardian('G2'));
 
+  // Modale fin de match
+  document.getElementById('btn-end-match').addEventListener('click', openEndMatchModal);
+  document.getElementById('btn-close-end-match').addEventListener('click', closeEndMatchModal);
+
   // Modale paramètres
+
   document.getElementById('btn-settings').addEventListener('click', () => {
     renderSettingsForm();
     document.getElementById('settings-modal').classList.remove('hidden');
@@ -830,14 +1267,16 @@ function bindEvents() {
 
   // Lancer un match
   document.getElementById('btn-start-match').addEventListener('click', () => {
+    const date = document.getElementById('inp-date').value.trim();
     const opponent = document.getElementById('inp-opponent').value.trim();
     const g1Name = document.getElementById('inp-g1-name').value.trim();
     const g1Num = document.getElementById('inp-g1-num').value.trim();
     const g2Name = document.getElementById('inp-g2-name').value.trim();
     const g2Num = document.getElementById('inp-g2-num').value.trim();
-    startNewMatch(opponent, g1Name, g1Num, g2Name, g2Num);
+    startNewMatch(opponent, g1Name, g1Num, g2Name, g2Num, date);
     document.getElementById('settings-modal').classList.add('hidden');
   });
+
 
   // Seuils visuels (% d'arrêts)
   document.getElementById('inp-percent-low').addEventListener('input', (e) => {
@@ -891,36 +1330,51 @@ function switchPeriod(period) {
   ui.period = period;
   // Les séries sont recalculées automatiquement via computeStreak (par période),
   // donc le passage MT1→MT2 brise naturellement les séries.
+  // On purge les timestamps de reset de série : ils ne sont valables que dans la
+  // période où ils ont été posés (évite les re-sélections de pénalty obsolètes).
+  ui.gbStreakReset = {};
   renderAll();
 }
 
 /** Change le gardien actif (G1/G2). */
 function switchGuardian(gbId) {
   if (ui.activeGb === gbId) return;
-  ui.activeGb = gbId;
+
+  const leavingGb = ui.activeGb;
+
   if (ui.penaltyActive) {
-    // Changement de GB pendant un penalty : on mémorise le changement ET on remet
-    // la série du GB qui entre à 0 (définitivement). Le péno ne comptera pas dans
-    // sa série sauf si le user le re-sélectionne après le péno (scénario 3).
+    // Changement de GB pendant un penalty (cas particulier) :
+    //  - la série du GB qui ENTRE est remise à 0 (définitivement)
+    //  - la série du GB qui SORT n'est PAS remise à 0 (il conserve sa série d'avant péno,
+    //    car il sera rétabli automatiquement dans les buts après le péno)
     ui.gbChangedDuringPenalty = true;
     ui.gbStreakReset[gbId] = Date.now();
-  } else if (state.current_match && ui.gbStreakReset[gbId]) {
-    // Re-sélection d'un GB après un penalty : le dernier péno de ce GB (enregistré
-    // après son reset) compte désormais dans sa série (scénario 3 : le GB conserve
-    // sa série avec le péno).
-    const resetTime = ui.gbStreakReset[gbId];
-    const events = state.current_match.events;
-    for (let i = events.length - 1; i >= 0; i--) {
-      const e = events[i];
-      if (e.activeGb === gbId && e.isPenalty && !e.countInStreak && e.timestamp >= resetTime) {
-        e.countInStreak = true;
-        saveState();
-        break;
+  } else {
+    // Changement normal de GB : la série du GB qui SORT est remise à 0.
+    // Quand il reviendra dans les buts, sa série repartira de zéro.
+    ui.gbStreakReset[leavingGb] = Date.now();
+
+    // Re-sélection d'un GB après un penalty (scénario 3) : le dernier péno de ce GB
+    // (enregistré après son reset) compte désormais dans sa série. Le GB conserve
+    // sa série (remise à 0 + résultat du péno).
+    if (state.current_match && ui.gbStreakReset[gbId]) {
+      const resetTime = ui.gbStreakReset[gbId];
+      const events = state.current_match.events;
+      for (let i = events.length - 1; i >= 0; i--) {
+        const e = events[i];
+        if (e.activeGb === gbId && e.isPenalty && !e.countInStreak && e.timestamp >= resetTime) {
+          e.countInStreak = true;
+          saveState();
+          break;
+        }
       }
     }
   }
+
+  ui.activeGb = gbId;
   renderAll();
 }
+
 
 
 

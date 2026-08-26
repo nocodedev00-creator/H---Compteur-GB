@@ -38,4 +38,75 @@ Ce document trace l'historique des problèmes techniques complexes et les soluti
 - **Principe** : `renderStats()` calcule désormais les stats de G1 et G2 de façon fixe (plus de notion actif/banc dans ces colonnes). Le gardien actif n'affecte plus que le bloc "Série en cours". Libellés par défaut mis à jour dans `index.html`.
 - **Implémentation** : `app.js` (`renderStats`), `index.html`.
 
+## 2026-08-26 : Modale "Fin de match" avec graphique en ligne des séries par mi-temps
+
+**Contexte** : L'utilisateur veut visualiser les séries d'arrêts et de buts encaissés de chaque gardien par mi-temps, avec un graphique en ligne (timeline).
+
+### ✅ Solution Validée
+
+- **Principe** : Bouton "Fin" à droite de `#btn-mt2` (même largeur, conteneur flex identique). Modale plein écran avec **graphique en ligne SVG** par mi-temps : axe X = événements successifs, axe Y = série d'arrêts en cours. La ligne **monte** à chaque arrêt, **descend à 0** à chaque but. **GB1 en jaune** (`#f2c200`), **GB2 en bleu clair** (`#38bdf8`). Points rouges = buts encaissés. Le bloc gardien (`flex-1`) est réduit proportionnellement.
+- **Implémentation** : `app.js` (`computeStreakTimeline`, `renderStreakLineChart`, `renderEndMatchModal`, `openEndMatchModal`, `closeEndMatchModal`), `index.html`.
+
+## 2026-08-26 : Correction régression - reset des séries à chaque changement de gardien
+
+**Contexte** : Les séries des GB ne se réinitialisaient pas à chaque changement de gardien (régression). Seuls les changements pendant un pénalty remettaient la série à 0. Le GB qui sortait en changement normal conservait sa série quand il revenait.
+
+### ✅ Solution Validée
+
+- **Principe** : `switchGuardian` remet désormais la série du GB qui SORT à 0 (`ui.gbStreakReset[leavingGb] = Date.now()`) en changement normal. Exception pénalty : le GB qui sort pendant un pénalty **conserve** sa série (il sera rétabli automatiquement dans les buts). `computeMergedStreakTimeline` (graphique fin de match) applique les mêmes règles (filtre `countInStreak` + reset). `switchPeriod` purge `ui.gbStreakReset = {}` au changement de mi-temps pour éviter les re-sélections de pénalty obsolètes.
+- **Implémentation** : `app.js` (`switchGuardian`, `switchPeriod`, `computeMergedStreakTimeline`).
+
+## 2026-08-26 : Graphique fin de match - alternance des GB sur une seule ligne
+
+**Contexte** : Le graphique fin de match affichait 2 lignes superposées (une par GB), ce qui était confus. L'utilisateur veut voir les GB alterner sur le même graph.
+
+### ✅ Solution Validée
+
+- **Principe** : `computeStreakTimeline` (par GB) remplacé par `computeMergedStreakTimeline` (une seule timeline qui alterne les GB). Quand le GB change, un point de reset à 0 est inséré (gris). `renderStreakLineChart` dessine une seule ligne dont la couleur change selon le GB actif (GB1 jaune, GB2 bleu). Plus de superposition.
+- **Implémentation** : `app.js` (`computeMergedStreakTimeline`, `renderStreakLineChart`).
+
+## 2026-08-26 : Modale fin de match - stats des GB par mi-temps + total match + export
+
+**Contexte** : L'utilisateur veut voir les stats des GB par mi-temps au niveau des graphs, les stats totales du match en bas du 2ème graph, et des fonctions d'export sur cette page.
+
+### ✅ Solution Validée
+
+- **Principe** : `renderEndMatchModal` affiche désormais : pour chaque mi-temps, les stats des 2 GB (arrêts, buts, %, penaltys) sous le graphique ; en bas du 2ème graph, les stats totales du match (GB1, GB2, Global) ; des boutons d'export image PNG / JSON / CSV (toutes les données collectées via `exportHistory`). Nouvelles fonctions : `computeGbStats`, `renderGbStatsRow`.
+- **Implémentation** : `app.js` (`computeGbStats`, `renderGbStatsRow`, `renderEndMatchModal`).
+
+## 2026-08-26 : Export image PNG de la page fin de match
+
+**Contexte** : L'utilisateur veut pouvoir exporter la page fin de match (graphiques + stats) dans un format facile à envoyer par email ou WhatsApp. C'est une app pour professionnels.
+
+### ✅ Solution Validée
+
+- **Principe** : Le meilleur format pour un envoi rapide par email/WhatsApp est une **image PNG** (universel, lisible partout, professionnel). Bouton "Exporter cette page en image" dans la modale fin de match. Utilise **html2canvas** (CDN) pour capturer le contenu en PNG haute résolution (scale 2), avec un en-tête professionnel (adversaire + date). Cache Service Worker incrémenté à `v11`.
+- **Implémentation** : `index.html` (CDN html2canvas), `app.js` (`exportEndMatchImage`), `sw.js` (cache v11).
+
+## 2026-08-26 : Export image - affichage adversaire/date + exclusion des boutons d'export
+
+**Contexte** : Retour utilisateur sur l'export image : afficher l'adversaire et la date du match sur la page fin de match, et ne pas exporter les boutons d'export sur l'image.
+
+### ✅ Solution Validée
+
+- **Principe** : En-tête de section en haut de la modale fin de match (adversaire en gros doré + date). Le bloc des boutons d'export est identifié par `#end-match-export-buttons` et masqué (`display:none`) avant la capture html2canvas, puis restauré après (dans `.then` et `.catch`).
+- **Implémentation** : `app.js` (`renderEndMatchModal`, `exportEndMatchImage`).
+
+## 2026-08-26 : Bug graphique incomplet dans la modale fin de match
+
+**Contexte** : Quand on clique sur "Fin", seules les dernières actions du match apparaissent sur le graphique (ex: les 4 dernières). Il faut cliquer sur MT1 puis MT2 pour que les graphiques soient complets. Le graphique MT1 est souvent vide.
+
+### ✅ Solution Validée
+
+- **Principe** : `computeMergedStreakTimeline` **supprimait** les événements antérieurs au reset de série (`ui.gbStreakReset`) au lieu de les afficher. Quand un GB était changé, tous ses événements précédents disparaissaient du graphique. Fix : on **conserve tous les événements** et on gère la série par gardien (`streaks = { G1: 0, G2: 0 }`). Au changement de GB, on vérifie si `ui.gbStreakReset[gbId]` est défini : si oui (changement normal), la série repart de 0 ; si non (retour après pénalty), la série est conservée. Les événements ne sont plus jamais supprimés du graphique.
+- **Implémentation** : `app.js` (`computeMergedStreakTimeline`).
+
+
+
+
+
+
+
+
+
 
