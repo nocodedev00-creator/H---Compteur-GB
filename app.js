@@ -37,8 +37,10 @@ let ui = {
   period: 'MT1',       // Période courante
   penaltyActive: false, // Toggle penalty
   gbBeforePenalty: null, // GB qui jouait avant l'activation du penalty
-  gbChangedDuringPenalty: false // Indique si le GB a été changé pendant le penalty
+  gbChangedDuringPenalty: false, // Indique si le GB a été changé pendant le penalty
+  gbStreakReset: {} // GB dont la série a été remise à 0 (ex: { G2: true })
 };
+
 
 
 /* ============================================================
@@ -333,8 +335,17 @@ function formatRatio(ratio, penaltyRatio) {
 function computeStreak(events, gbId, period) {
   // Un événement compte dans la série s'il n'est pas un penalty, ou s'il est un penalty
   // qui doit compter dans la série (pas de changement de GB pendant le penalty).
-  const gbEvents = events.filter((e) => e.activeGb === gbId && e.period === period && (!e.isPenalty || e.countInStreak));
+  // Si la série du GB a été remise à 0 (entrée pendant un penalty), on ignore les
+  // événements antérieurs au reset (la série repart de zéro).
+  const resetTime = ui.gbStreakReset[gbId];
+  const gbEvents = events.filter((e) =>
+    e.activeGb === gbId &&
+    e.period === period &&
+    (!e.isPenalty || e.countInStreak) &&
+    (!resetTime || e.timestamp >= resetTime)
+  );
   if (gbEvents.length === 0) return { type: null, count: 0 };
+
 
 
   // On parcourt de la fin vers le début pour trouver la série en cours
@@ -509,53 +520,52 @@ function renderSelectors() {
 
 }
 
-/** Blocs % d'arrêts : GB actif, GB banc, global. */
+/**
+ * Blocs % d'arrêts : GB1 (colonne 1), GB2 (colonne 2), global (colonne 3).
+ * Les colonnes 1 et 2 sont FIXES : elles affichent toujours respectivement
+ * les stats du GB1 et du GB2, indépendamment du gardien actif.
+ */
 function renderStats() {
   const events = state.current_match ? state.current_match.events : [];
   const settings = state.settings;
 
-  const activeGb = ui.activeGb;
-  const benchGb = activeGb === 'G1' ? 'G2' : 'G1';
-
-  const activePercent = computePercent(events, activeGb);
-  const benchPercent = computePercent(events, benchGb);
   const globalPercent = computeGlobalPercent(events);
-
-  const activeRatio = computeRatio(events, activeGb);
-  const benchRatio = computeRatio(events, benchGb);
   const globalRatio = computeGlobalRatio(events);
-
-  const activePenaltyRatio = computePenaltyRatio(events, activeGb);
-  const benchPenaltyRatio = computePenaltyRatio(events, benchGb);
   const globalPenaltyRatio = computeGlobalPenaltyRatio(events);
 
-  // GB actif
-  const elActiveName = document.getElementById('gb-active-name');
-  const elActivePercent = document.getElementById('gb-active-percent');
-  const elActiveRatio = document.getElementById('gb-active-ratio');
+  // Colonne 1 : GB1 (fixe)
+  const g1Percent = computePercent(events, 'G1');
+  const g1Ratio = computeRatio(events, 'G1');
+  const g1PenaltyRatio = computePenaltyRatio(events, 'G1');
+
+  const elG1Name = document.getElementById('gb-active-name');
+  const elG1Percent = document.getElementById('gb-active-percent');
+  const elG1Ratio = document.getElementById('gb-active-ratio');
   if (state.current_match) {
-    elActiveName.textContent = state.current_match.gardiens[activeGb].name || 'GB Actif';
+    elG1Name.textContent = state.current_match.gardiens.G1.name || 'GB1';
   }
-  elActivePercent.textContent = activePercent === null ? '0%' : activePercent + '%';
-  elActivePercent.style.color = getPercentColor(activePercent, settings);
-  elActiveRatio.textContent = formatRatio(activeRatio, activePenaltyRatio);
-  elActiveRatio.style.color = getPercentColor(activePercent, settings);
+  elG1Percent.textContent = g1Percent === null ? '0%' : g1Percent + '%';
+  elG1Percent.style.color = getPercentColor(g1Percent, settings);
+  elG1Ratio.textContent = formatRatio(g1Ratio, g1PenaltyRatio);
+  elG1Ratio.style.color = getPercentColor(g1Percent, settings);
 
+  // Colonne 2 : GB2 (fixe)
+  const g2Percent = computePercent(events, 'G2');
+  const g2Ratio = computeRatio(events, 'G2');
+  const g2PenaltyRatio = computePenaltyRatio(events, 'G2');
 
-  // GB banc
-  const elBenchName = document.getElementById('gb-bench-name');
-  const elBenchPercent = document.getElementById('gb-bench-percent');
-  const elBenchRatio = document.getElementById('gb-bench-ratio');
+  const elG2Name = document.getElementById('gb-bench-name');
+  const elG2Percent = document.getElementById('gb-bench-percent');
+  const elG2Ratio = document.getElementById('gb-bench-ratio');
   if (state.current_match) {
-    elBenchName.textContent = state.current_match.gardiens[benchGb].name || 'GB Banc';
+    elG2Name.textContent = state.current_match.gardiens.G2.name || 'GB2';
   }
-  elBenchPercent.textContent = benchPercent === null ? '0%' : benchPercent + '%';
-  elBenchPercent.style.color = getPercentColor(benchPercent, settings);
-  elBenchRatio.textContent = formatRatio(benchRatio, benchPenaltyRatio);
-  elBenchRatio.style.color = getPercentColor(benchPercent, settings);
+  elG2Percent.textContent = g2Percent === null ? '0%' : g2Percent + '%';
+  elG2Percent.style.color = getPercentColor(g2Percent, settings);
+  elG2Ratio.textContent = formatRatio(g2Ratio, g2PenaltyRatio);
+  elG2Ratio.style.color = getPercentColor(g2Percent, settings);
 
-
-  // Global
+  // Colonne 3 : Global
   const elGlobalPercent = document.getElementById('gb-global-percent');
   const elGlobalRatio = document.getElementById('gb-global-ratio');
   elGlobalPercent.textContent = globalPercent === null ? '0%' : globalPercent + '%';
@@ -563,6 +573,7 @@ function renderStats() {
   elGlobalRatio.textContent = formatRatio(globalRatio, globalPenaltyRatio);
   elGlobalRatio.style.color = getPercentColor(globalPercent, settings);
 }
+
 
 
 
@@ -577,18 +588,36 @@ function renderStreak() {
   const elBlock = document.getElementById('streak-block');
   const elTitle = document.getElementById('streak-title');
   const elGbName = document.getElementById('streak-gb-name');
+  const elGbPercent = document.getElementById('streak-gb-percent');
+  const elGbRatio = document.getElementById('streak-gb-ratio');
+  const elGbPenalty = document.getElementById('streak-gb-penalty');
 
   // Nom du gardien actif affiché en gros (le GB en place dans le but)
   const gbName = state.current_match ? (state.current_match.gardiens[ui.activeGb].name || 'GB') : 'GB';
   elGbName.textContent = gbName;
-  // Si un penalty est actif, le titre devient "PENALTY" et on masque la valeur + le label
+
+  // Stats du GB actif rappelées sous le nom, sur 3 lignes : % / ratio / (p x/x)
+  const activeRatio = computeRatio(events, ui.activeGb);
+  const activePercent = computePercent(events, ui.activeGb);
+  const activePenaltyRatio = computePenaltyRatio(events, ui.activeGb);
+  elGbPercent.textContent = activePercent === null ? '0%' : activePercent + '%';
+  elGbRatio.textContent = activeRatio.shots === 0 ? '0/0' : activeRatio.saves + '/' + activeRatio.shots;
+  elGbPenalty.textContent = activePenaltyRatio.shots === 0 ? '' : '(p ' + activePenaltyRatio.saves + '/' + activePenaltyRatio.shots + ')';
+
+
+  // Si un penalty est actif, le titre devient "PENALTY" en GROS et on masque la valeur + le label
   elTitle.textContent = ui.penaltyActive ? 'PENALTY' : 'Série en cours';
+  elTitle.className = ui.penaltyActive
+    ? 'font-oswald font-black text-4xl uppercase tracking-widest text-[#f2c200] mb-1'
+    : 'text-xs font-bold uppercase text-white/60 tracking-widest mb-1';
   elValue.style.display = ui.penaltyActive ? 'none' : '';
   elLabel.style.display = ui.penaltyActive ? 'none' : '';
 
 
+
   elValue.textContent = String(streak.count);
   elLabel.textContent = streak.type === null ? '—' : (streak.type === 'BUT' ? 'Buts' : 'Arrêts');
+
 
   // Le fond du bloc est coloré selon la série (texte en blanc pour la lisibilité).
   // S'il n'y a pas encore de série, le fond reste neutre (slate).
@@ -869,12 +898,31 @@ function switchPeriod(period) {
 function switchGuardian(gbId) {
   if (ui.activeGb === gbId) return;
   ui.activeGb = gbId;
-  // Si un penalty est actif, on mémorise qu'il y a eu un changement de GB
   if (ui.penaltyActive) {
+    // Changement de GB pendant un penalty : on mémorise le changement ET on remet
+    // la série du GB qui entre à 0 (définitivement). Le péno ne comptera pas dans
+    // sa série sauf si le user le re-sélectionne après le péno (scénario 3).
     ui.gbChangedDuringPenalty = true;
+    ui.gbStreakReset[gbId] = Date.now();
+  } else if (state.current_match && ui.gbStreakReset[gbId]) {
+    // Re-sélection d'un GB après un penalty : le dernier péno de ce GB (enregistré
+    // après son reset) compte désormais dans sa série (scénario 3 : le GB conserve
+    // sa série avec le péno).
+    const resetTime = ui.gbStreakReset[gbId];
+    const events = state.current_match.events;
+    for (let i = events.length - 1; i >= 0; i--) {
+      const e = events[i];
+      if (e.activeGb === gbId && e.isPenalty && !e.countInStreak && e.timestamp >= resetTime) {
+        e.countInStreak = true;
+        saveState();
+        break;
+      }
+    }
   }
   renderAll();
 }
+
+
 
 
 /* ============================================================

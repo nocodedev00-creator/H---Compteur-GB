@@ -38,6 +38,16 @@
 - [x] Déploiement V1 sur GitHub Pages. Correction du cache Service Worker : incrémentation du `CACHE_NAME` à `v10` pour forcer la mise à jour des navigateurs (stratégie cache-first bloquait l'affichage de la nouvelle version).
 - [x] Stepper mobile pour le "Nombre d'arrêts critiques" (`inp-streak-high`) : remplacement du champ `number` (qui forçait à 10 sur mobile) par des boutons **−** / **+** incrémentant de 1 en 1, champ en `readonly`. Logique dans `applyStreakHigh`.
 - [x] Utilisation immédiate sans lancer de match : fonction `ensureMatch()` qui crée automatiquement un match par défaut (adversaire "Adversaire", GB1 "GB1", GB2 "GB2") au premier clic sur But/Arrêt si aucun match n'est actif.
+- [x] Colonnes stats centrales FIXES : colonne 1 = GB1, colonne 2 = GB2, colonne 3 = Global. `renderStats()` affiche désormais les stats du GB1 et du GB2 de façon fixe, indépendamment du gardien actif (le gardien actif n'affecte plus que le bloc "Série en cours"). Libellés par défaut mis à jour dans `index.html` (GB1 / GB2 au lieu de GB Actif / GB Banc).
+- [x] Refonte du bloc série en cours : "Série en cours" déplacé au-dessus de `#streak-value` (même taille de police) ; ajout des stats du GB actif sous `#streak-gb-name` ; limite verticale décalée vers la gauche (colonne gauche `w-[55%]`) pour équilibrer le conteneur.
+- [x] Stats du GB actif dans le bloc série affichées sur **3 lignes** (police `text-lg`, plus petite que le nom) : ligne 1 = % d'arrêts, ligne 2 = ratio arrêts/tirs, ligne 3 = penaltys `(p x/x)` (vide si aucun penalty).
+- [x] Correction centrage colonne droite du bloc série : passage de `shrink-0` à `flex-1 min-w-0` pour que la colonne occupe tout l'espace restant et que son contenu soit centré (élimine l'espace libre à droite).
+- [x] Titre "PENALTY" en **gros** (`text-4xl`, couleur `#f2c200`) dans le bloc série quand un penalty est actif (au lieu du petit libellé "Série en cours").
+- [x] Remise à 0 **définitive** de la série du GB qui entre pendant un penalty (`ui.gbStreakReset[gbId]` + `computeStreak` ignore les événements avant le reset). Scénario 3 : si le user re-sélectionne ce GB après le penalty, le dernier péno de ce GB est marqué `countInStreak = true` → il conserve sa série avec le péno.
+
+
+
+
 
 
 

@@ -28,3 +28,14 @@ Ce document trace l'historique des problèmes techniques complexes et les soluti
 
 - **Principe** : `navigator.wakeLock.request('screen')` pour le No Sleep + `overscroll-behavior-y: contain;` sur le `body` pour l'anti-refresh. Interface mobile-first absolue (zéro scrolling).
 - **Implémentation** : `src/services/wakeLock.js`, CSS global.
+
+## 2026-08-26 : Colonnes stats centrales fixes (GB1 / GB2 / Global)
+
+**Contexte** : L'utilisateur souhaite que les colonnes 1 et 2 de la zone stats affichent toujours respectivement les stats du GB1 et du GB2, quel que soit le gardien actif.
+
+### ✅ Solution Validée
+
+- **Principe** : `renderStats()` calcule désormais les stats de G1 et G2 de façon fixe (plus de notion actif/banc dans ces colonnes). Le gardien actif n'affecte plus que le bloc "Série en cours". Libellés par défaut mis à jour dans `index.html`.
+- **Implémentation** : `app.js` (`renderStats`), `index.html`.
+
+
