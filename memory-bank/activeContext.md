@@ -2,7 +2,8 @@
 
 ## Travail en Cours
 
-Le projet **HBC Nantes Live Stats Gardiens** est en phase d'implémentation. Le squelette PWA est créé et la logique métier est implémentée dans `app.js`. Dernières modifications : **correction du No Sleep sur iPhone** (NoSleep.js car Wake Lock non supporté par Safari iOS) + **correction safe-area iOS** (classe `.safe-top` avec `env(safe-area-inset-top)` appliquée aux headers pour que l'encoche / Dynamic Island n'empiete plus sur `#btn-settings`).
+Le projet **HBC Nantes Live Stats Gardiens** est en phase d'implémentation. Le squelette PWA est créé et la logique métier est implémentée dans `app.js`. Dernières modifications : **inversion de l'affichage des paliers de buts** dans `#streak-colors-container` (le palier critique en rouge est affiché en premier, puis les paliers moins critiques vers le vert) + **rouge fixe au palier critique** quand on augmente le nombre de paliers (on ajoute une couleur plus verte en bas, via `COLOR_PALETTE` étendu à 10 nuances).
+
 
 
 
@@ -45,8 +46,9 @@ Le projet **HBC Nantes Live Stats Gardiens** est en phase d'implémentation. Le 
 - **Stats penaltys dans les ratios** : Les ratios (GB actif, GB banc, global) affichent les stats penaltys au format `3/11 (p 2/3)` (arrêts/tirs globaux + arrêts/tirs sur penaltys).
 - **Hauteur sélecteurs gardiens** : Le conteneur des boutons G1/G2 a la même hauteur que le conteneur MT1/MT2 (`items-stretch` sur le parent + `h-full` sur les boutons gardiens), même si les noms sont sur une seule ligne.
 - **Seuils visuels (% d'arrêts)** : La section "Seuils Visuels" affiche sur une seule ligne : `0% [couleur rouge] [seuil 25%] [couleur orange] [seuil 35%] [couleur vert] 100%`. Seuils par défaut : 25% (rouge) et 35% (orange). Pas de barre de progression.
-- **Série de buts (couleurs par palier)** : L'utilisateur configure le nombre d'arrêts critiques (5 par défaut) et une couleur par palier de buts encaissés. Les couleurs sont générées automatiquement par `generateStreakColors(n)` en **gradation claire** du vert (1er palier) au rouge (palier critique), en passant par le jaune et l'orange. **Saturation (85%) et luminosité (45%) constantes** : seule la teinte varie (120°→0°), donc pas de variations de luminosité confuses. La gradation est claire et sans ambiguïté. S'adapte automatiquement au nombre de paliers. Stocké dans `settings.streak_colors` (tableau). `getStreakColor` utilise ce tableau pour colorer la série de buts. L'utilisateur peut modifier chaque couleur manuellement.
-- **Sélecteur de couleur simplifié** : `createColorPicker()` crée un bouton rond + palette déroulante de swatches en gradation claire vert→rouge (`COLOR_PALETTE` = `generateGradientPalette(9)`, 9 nuances). Utilisé pour les % d'arrêts et les paliers de buts.
+- **Série de buts (couleurs par palier)** : L'utilisateur configure le nombre d'arrêts critiques (5 par défaut) et une couleur par palier de buts encaissés. **Affichage dans `#streak-colors-container` du palier critique (rouge) en premier, puis les paliers moins critiques vers le vert en bas.** Les couleurs sont générées par `generateStreakColors(n)` en **gradation claire** du vert (1er palier) au rouge (palier critique). **Le rouge est TOUJOURS fixe au palier critique** : quand on augmente le nombre de paliers, on ajoute une couleur plus verte en bas (via `COLOR_PALETTE`, on prend les n dernières nuances). **Saturation (85%) et luminosité (45%) constantes** : seule la teinte varie (120°→0°). Stocké dans `settings.streak_colors` (tableau). `getStreakColor` utilise ce tableau pour colorer la série de buts. L'utilisateur peut modifier chaque couleur manuellement.
+- **Sélecteur de couleur simplifié** : `createColorPicker()` crée un bouton rond + palette déroulante de swatches en gradation claire vert→rouge (`COLOR_PALETTE` = `generateGradientPalette(10)`, 10 nuances pour couvrir le max de 10 paliers). Utilisé pour les % d'arrêts et les paliers de buts.
+
 
 ## État de la Mémoire
 

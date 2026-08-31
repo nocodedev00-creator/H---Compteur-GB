@@ -110,7 +110,17 @@ Ce document trace l'historique des problèmes techniques complexes et les soluti
 - **Principe** : Ajout de la classe CSS `.safe-top` (`padding-top: max(env(safe-area-inset-top), 12px)`) appliquée au header principal + aux headers des modales (paramètres, fin de match). Aligne tous les conteneurs vers le bas pour garantir l'accès aux boutons. Cache Service Worker incrémenté à `v14`.
 - **Implémentation** : `index.html` (classe `.safe-top` + application aux 3 headers), `sw.js` (cache v14).
 
+## 2026-08-31 : Paliers de buts - rouge fixe au critique + affichage inversé
+
+**Contexte** : L'utilisateur veut que le palier critique (rouge) soit affiché en premier dans `#streak-colors-container`, et que le rouge reste fixe quand on augmente le nombre de paliers (on ajoute une couleur plus verte en bas).
+
+### ✅ Solution Validée
+
+- **Principe** : `generateStreakColors(n)` prend les n dernières nuances de `COLOR_PALETTE` (étendu à 10 nuances via `generateGradientPalette(10)`). Le rouge (dernière nuance) reste TOUJOURS au palier critique. `renderStreakColors` itère de `n-1` vers `0` pour afficher le critique (rouge) en premier, puis vers le vert en bas.
+- **Implémentation** : `app.js` (`COLOR_PALETTE`, `generateStreakColors`, `renderStreakColors`).
+
 ## 2026-08-26 : Bug graphique incomplet dans la modale fin de match
+
 
 **Contexte** : Quand on clique sur "Fin", seules les dernières actions du match apparaissent sur le graphique (ex: les 4 dernières). Il faut cliquer sur MT1 puis MT2 pour que les graphiques soient complets. Le graphique MT1 est souvent vide.
 

@@ -102,8 +102,10 @@ function generateGradientPalette(n) {
   return colors;
 }
 
-// Palette de couleurs simplifiée (gradation naturelle vert clair → rouge vif, 9 nuances franches)
-const COLOR_PALETTE = generateGradientPalette(9);
+// Palette de couleurs simplifiée (gradation naturelle vert clair → rouge vif, 10 nuances franches)
+// 10 nuances pour couvrir le nombre maximal de paliers de buts (1 à 10).
+const COLOR_PALETTE = generateGradientPalette(10);
+
 
 /**
  * Crée un sélecteur de couleur simplifié (bouton rond + palette de swatches).
@@ -164,15 +166,23 @@ function createColorPicker(containerId, initialColor, onChange) {
 }
 
 /**
- * Génère automatiquement les couleurs des paliers de buts en gradation naturelle :
- * du vert clair (1er palier) au rouge vif (palier critique), en passant par le jaune et l'orange.
- * Toutes les couleurs sont différentes. La gradation s'adapte automatiquement au nombre de paliers.
+ * Génère automatiquement les couleurs des paliers de buts en gradation naturelle.
+ * Le palier critique (dernier) est TOUJOURS le rouge vif du nuancier (COLOR_PALETTE).
+ * Quand on augmente le nombre de paliers, on ajoute une couleur plus verte en bas,
+ * le rouge restant fixe au palier critique.
  * @param {number} n - nombre de paliers (arrêts critiques)
  * @returns {string[]} tableau de couleurs hex
  */
 function generateStreakColors(n) {
-  return generateGradientPalette(n);
+  const colors = [];
+  for (let i = 0; i < n; i++) {
+    // Prend les n dernières nuances du nuancier : le rouge (dernière) reste au palier critique.
+    const paletteIdx = COLOR_PALETTE.length - n + i;
+    colors.push(COLOR_PALETTE[paletteIdx]);
+  }
+  return colors;
 }
+
 
 /* ============================================================
  * 3. STOCKAGE (localStorage - Event Sourcing)
@@ -1124,7 +1134,11 @@ function renderPenalty() {
   btn.textContent = ui.penaltyActive ? 'Penalty actif ✓' : '7 Mètres / Penalty';
 }
 
-/** Génère les sélecteurs de couleur par palier de buts encaissés. */
+/**
+ * Génère les sélecteurs de couleur par palier de buts encaissés.
+ * Affichage du palier critique (rouge, en haut) vers le palier le plus bas (vert, en bas).
+ * Quand on augmente le nombre de paliers, une couleur plus verte est ajoutée en bas.
+ */
 function renderStreakColors() {
   const s = state.settings;
   const container = document.getElementById('streak-colors-container');
@@ -1137,7 +1151,8 @@ function renderStreakColors() {
     s.streak_colors = generateStreakColors(n);
   }
 
-  for (let i = 0; i < n; i++) {
+  // Itère du palier critique (n buts, rouge) vers le palier le plus bas (1 but, vert)
+  for (let i = n - 1; i >= 0; i--) {
     const row = document.createElement('div');
     row.className = 'flex items-center gap-2';
 
@@ -1160,6 +1175,7 @@ function renderStreakColors() {
     });
   }
 }
+
 
 /** Pré-remplit le formulaire de la modale avec les valeurs actuelles. */
 function renderSettingsForm() {
