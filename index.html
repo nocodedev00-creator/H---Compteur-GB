@@ -16,6 +16,8 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- html2canvas CDN (export image de la page fin de match) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- NoSleep.js CDN (empêche l'écran de s'éteindre sur iOS, où le Wake Lock n'est pas supporté) -->
+  <script src="https://cdn.jsdelivr.net/npm/nosleep@0.12.0/dist/NoSleep.min.js"></script>
 
   <!-- Google Fonts : Montserrat / Oswald -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -91,12 +93,14 @@
 
   <!-- ================= SÉLECTEURS RAPIDES ================= -->
   <div class="flex items-stretch gap-2 px-3 py-2 bg-slate-900/80 border-b border-slate-800 shrink-0">
-    <!-- Bascule MT1/MT2 + Fin de match (même largeur, dans le même conteneur) -->
+    <!-- Bascule MT1/MT2 + Stats (même largeur, dans le même conteneur) -->
     <div class="flex rounded-xl overflow-hidden border-2 border-[#4a266a] shadow-lg shrink-0">
-      <button id="btn-mt1" class="px-2 py-3 text-base font-black uppercase tracking-wide bg-[#4a266a] text-[#f2c200]">MT1</button>
-      <button id="btn-mt2" class="px-2 py-3 text-base font-black uppercase tracking-wide bg-slate-800 text-white/60">MT2</button>
-      <button id="btn-end-match" class="px-2 py-3 text-base font-black uppercase tracking-wide bg-slate-800 text-white/60">Fin</button>
+      <button id="btn-mt1" class="flex-1 px-2 py-3 text-base font-black uppercase tracking-wide bg-[#4a266a] text-[#f2c200]">MT1</button>
+      <button id="btn-mt2" class="flex-1 px-2 py-3 text-base font-black uppercase tracking-wide bg-slate-800 text-white/60">MT2</button>
+      <button id="btn-end-match" class="flex-1 px-2 py-3 text-sm font-black uppercase tracking-wide bg-slate-800 text-white/60">Stats</button>
+
     </div>
+
 
 
 

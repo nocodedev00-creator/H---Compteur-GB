@@ -92,6 +92,15 @@ Ce document trace l'historique des problèmes techniques complexes et les soluti
 - **Principe** : En-tête de section en haut de la modale fin de match (adversaire en gros doré + date). Le bloc des boutons d'export est identifié par `#end-match-export-buttons` et masqué (`display:none`) avant la capture html2canvas, puis restauré après (dans `.then` et `.catch`).
 - **Implémentation** : `app.js` (`renderEndMatchModal`, `exportEndMatchImage`).
 
+## 2026-08-31 : No Sleep sur iPhone (Wake Lock non supporté par Safari iOS)
+
+**Contexte** : Sur iPhone, l'écran s'éteignait malgré le Wake Lock. Safari iOS ne supporte pas l'API `navigator.wakeLock`.
+
+### ✅ Solution Validée
+
+- **Principe** : Utilisation de **NoSleep.js** (vidéo invisible en boucle) sur iOS, Wake Lock natif ailleurs. Détection iOS via `isIOS()`. NoSleep nécessite un geste utilisateur sur iOS → activation au premier tap (`touchstart`/`click` avec `{ once: true }`). Cache Service Worker incrémenté à `v13`.
+- **Implémentation** : `index.html` (CDN NoSleep), `app.js` (`isIOS`, `requestWakeLock`, `activateNoSleepOnFirstTouch`), `sw.js` (cache v13).
+
 ## 2026-08-26 : Bug graphique incomplet dans la modale fin de match
 
 **Contexte** : Quand on clique sur "Fin", seules les dernières actions du match apparaissent sur le graphique (ex: les 4 dernières). Il faut cliquer sur MT1 puis MT2 pour que les graphiques soient complets. Le graphique MT1 est souvent vide.

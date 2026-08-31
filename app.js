@@ -441,12 +441,39 @@ function undoAction() {
 
 /* ============================================================
  * 5. WAKE LOCK (No Sleep)
+ * ============================================================
+ * Sur iOS (Safari), l'API Wake Lock n'est PAS supportée.
+ * On utilise NoSleep.js (vidéo invisible en boucle) comme solution
+ * de contournement. Sur les autres plateformes, on utilise le
+ * Wake Lock natif si disponible.
  * ============================================================ */
 
 let wakeLock = null;
+let noSleep = null;
+
+/** Détecte si on est sur iOS (iPhone/iPad). */
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
 
 /** Demande le Wake Lock pour empêcher l'écran de s'éteindre. */
 async function requestWakeLock() {
+  // iOS : NoSleep.js (vidéo invisible en boucle)
+  if (isIOS()) {
+    try {
+      if (typeof NoSleep !== 'undefined') {
+        if (!noSleep) noSleep = new NoSleep();
+        await noSleep.enable();
+        console.log('NoSleep activé (iOS)');
+      }
+    } catch (e) {
+      console.warn('NoSleep non disponible', e);
+    }
+    return;
+  }
+
+  // Autres plateformes : Wake Lock natif
   try {
     if ('wakeLock' in navigator) {
       wakeLock = await navigator.wakeLock.request('screen');
@@ -464,6 +491,18 @@ async function requestWakeLock() {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') requestWakeLock();
 });
+
+// IMPORTANT (iOS) : NoSleep.js nécessite un geste utilisateur (tap) pour démarrer
+// la vidéo invisible. On active donc le NoSleep au premier tap sur l'écran.
+// Sans cela, l'écran s'éteindrait quand même sur iPhone.
+let noSleepActivated = false;
+function activateNoSleepOnFirstTouch() {
+  if (noSleepActivated) return;
+  noSleepActivated = true;
+  requestWakeLock();
+}
+document.addEventListener('touchstart', activateNoSleepOnFirstTouch, { once: true });
+document.addEventListener('click', activateNoSleepOnFirstTouch, { once: true });
 
 /* ============================================================
  * 6. RENDU UI
@@ -492,13 +531,14 @@ function renderSelectors() {
   const g1 = document.getElementById('btn-g1');
   const g2 = document.getElementById('btn-g2');
 
-  // Période (largeur stricte, sans espace superflu)
+  // Période (largeur égale entre les 3 boutons du conteneur)
   mt1.className = ui.period === 'MT1'
-    ? 'px-2 py-3 text-base font-black uppercase tracking-wide bg-[#4a266a] text-[#f2c200]'
-    : 'px-2 py-3 text-base font-black uppercase tracking-wide bg-slate-800 text-white/60';
+    ? 'flex-1 px-2 py-3 text-base font-black uppercase tracking-wide bg-[#4a266a] text-[#f2c200]'
+    : 'flex-1 px-2 py-3 text-base font-black uppercase tracking-wide bg-slate-800 text-white/60';
   mt2.className = ui.period === 'MT2'
-    ? 'px-2 py-3 text-base font-black uppercase tracking-wide bg-[#4a266a] text-[#f2c200]'
-    : 'px-2 py-3 text-base font-black uppercase tracking-wide bg-slate-800 text-white/60';
+    ? 'flex-1 px-2 py-3 text-base font-black uppercase tracking-wide bg-[#4a266a] text-[#f2c200]'
+    : 'flex-1 px-2 py-3 text-base font-black uppercase tracking-wide bg-slate-800 text-white/60';
+
 
 
   // Gardien (2 boutons égaux, noms sur 2 lignes si trop long)
@@ -525,10 +565,15 @@ function renderSelectors() {
  * Blocs % d'arrêts : GB1 (colonne 1), GB2 (colonne 2), global (colonne 3).
  * Les colonnes 1 et 2 sont FIXES : elles affichent toujours respectivement
  * les stats du GB1 et du GB2, indépendamment du gardien actif.
+ * Les stats affichées correspondent à la mi-temps sélectionnée (ui.period) :
+ * si MT1 est actif, on affiche les stats de la mi-temps 1 ; si MT2, celles de la mi-temps 2.
  */
 function renderStats() {
-  const events = state.current_match ? state.current_match.events : [];
+  const allEvents = state.current_match ? state.current_match.events : [];
   const settings = state.settings;
+
+  // Filtre les événements de la mi-temps sélectionnée (MT1 ou MT2)
+  const events = allEvents.filter((e) => e.period === ui.period);
 
   const globalPercent = computeGlobalPercent(events);
   const globalRatio = computeGlobalRatio(events);
@@ -574,6 +619,7 @@ function renderStats() {
   elGlobalRatio.textContent = formatRatio(globalRatio, globalPenaltyRatio);
   elGlobalRatio.style.color = getPercentColor(globalPercent, settings);
 }
+
 
 
 

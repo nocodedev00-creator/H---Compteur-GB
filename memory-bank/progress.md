@@ -52,6 +52,12 @@
 - [x] **Stats des GB par mi-temps + total match + export dans la modale fin de match.** `renderEndMatchModal` affiche désormais : pour chaque mi-temps, les stats des 2 GB (arrêts, buts, %, penaltys) sous le graphique ; en bas du 2ème graph, les stats totales du match (GB1, GB2, Global) ; des boutons d'export image PNG / JSON / CSV (toutes les données collectées). Nouvelles fonctions : `computeGbStats`, `renderGbStatsRow`, `exportEndMatchImage`.
 - [x] **Export image PNG de la page fin de match.** Bouton "Exporter cette page en image" dans la modale fin de match. Utilise html2canvas (CDN) pour capturer le contenu (graphiques + stats) en PNG haute résolution (scale 2), avec un en-tête professionnel (adversaire + date). Format idéal pour envoi email/WhatsApp. Cache Service Worker incrémenté à `v11`.
 - [x] **Affichage adversaire + date sur la page fin de match.** En-tête de section en haut de la modale (adversaire en gros doré + date). Les boutons d'export sont masqués lors de la capture d'image (`#end-match-export-buttons` caché avant html2canvas, restauré après) pour ne pas apparaître sur l'image exportée.
+- [x] **Stats des colonnes centrales filtrées par mi-temps.** `renderStats()` filtre désormais les événements par la mi-temps sélectionnée (`ui.period`) : si MT1 est actif, les colonnes GB1, GB2 et Global affichent les stats de la mi-temps 1 ; si MT2, celles de la mi-temps 2.
+- [x] **Bouton "Fin" renommé en "Stats".** Le libellé du bouton `#btn-end-match` dans `index.html` passe de "Fin" à "Stats".
+- [x] **Uniformisation des largeurs des boutons MT1/MT2/Stats.** Ajout de `flex-1` sur les 3 boutons du conteneur période pour qu'ils aient tous la même largeur (visuellement parfait). Réduction de la police du bouton "Stats" (`text-sm` au lieu de `text-base`) pour compenser le texte plus long. Classes synchronisées dans `renderSelectors()` (`app.js`).
+- [x] **Correction No Sleep sur iPhone.** L'API Wake Lock n'est pas supportée par Safari iOS → l'écran s'éteignait. Solution : **NoSleep.js** (CDN) ajouté dans `index.html` + logique dans `app.js` (`isIOS()`, `requestWakeLock()` utilise NoSleep sur iOS, Wake Lock natif ailleurs). NoSleep nécessite un geste utilisateur sur iOS → activation au premier tap (`touchstart`/`click` avec `{ once: true }`). Cache Service Worker incrémenté à `v13` pour forcer la mise à jour.
+
+
 
 
 

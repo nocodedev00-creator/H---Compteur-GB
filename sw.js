@@ -5,7 +5,7 @@
 
 
 
-const CACHE_NAME = 'hbc-nantes-live-v12';
+const CACHE_NAME = 'hbc-nantes-live-v13';
 
 
 
