@@ -101,6 +101,15 @@ Ce document trace l'historique des problèmes techniques complexes et les soluti
 - **Principe** : Utilisation de **NoSleep.js** (vidéo invisible en boucle) sur iOS, Wake Lock natif ailleurs. Détection iOS via `isIOS()`. NoSleep nécessite un geste utilisateur sur iOS → activation au premier tap (`touchstart`/`click` avec `{ once: true }`). Cache Service Worker incrémenté à `v13`.
 - **Implémentation** : `index.html` (CDN NoSleep), `app.js` (`isIOS`, `requestWakeLock`, `activateNoSleepOnFirstTouch`), `sw.js` (cache v13).
 
+## 2026-08-31 : Safe-area iOS (encoche / Dynamic Island) empietait sur le header
+
+**Contexte** : Sur iPhone, la barre de statut (encoche / Dynamic Island) empietait sur le haut du `body > header`, bloquant le clic sur `#btn-settings`.
+
+### ✅ Solution Validée
+
+- **Principe** : Ajout de la classe CSS `.safe-top` (`padding-top: max(env(safe-area-inset-top), 12px)`) appliquée au header principal + aux headers des modales (paramètres, fin de match). Aligne tous les conteneurs vers le bas pour garantir l'accès aux boutons. Cache Service Worker incrémenté à `v14`.
+- **Implémentation** : `index.html` (classe `.safe-top` + application aux 3 headers), `sw.js` (cache v14).
+
 ## 2026-08-26 : Bug graphique incomplet dans la modale fin de match
 
 **Contexte** : Quand on clique sur "Fin", seules les dernières actions du match apparaissent sur le graphique (ex: les 4 dernières). Il faut cliquer sur MT1 puis MT2 pour que les graphiques soient complets. Le graphique MT1 est souvent vide.

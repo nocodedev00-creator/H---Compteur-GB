@@ -75,12 +75,22 @@
     /* ===== Scrollbar modale ===== */
     .modal-scroll::-webkit-scrollbar { width: 6px; }
     .modal-scroll::-webkit-scrollbar-thumb { background: #4a266a; border-radius: 3px; }
+
+    /* ===== Safe area iOS (encoche / Dynamic Island) =====
+       Compense la zone de sécurité en haut de l'écran sur iPhone.
+       Aligne tous les conteneurs du header vers le bas pour que
+       #btn-settings reste toujours accessible. */
+    .safe-top {
+      padding-top: max(env(safe-area-inset-top), 12px);
+    }
   </style>
+
 </head>
 <body class="flex flex-col">
 
   <!-- ================= HEADER ================= -->
-  <header class="flex items-center justify-between px-4 py-3 bg-[#4a266a] shrink-0">
+  <header class="safe-top flex items-center justify-between px-4 py-3 bg-[#4a266a] shrink-0">
+
     <div class="flex items-center gap-2">
       <span class="font-oswald font-bold text-lg text-[#f2c200] tracking-wide">Stat-GB</span>
     </div>
@@ -196,8 +206,9 @@
   <!-- ================= MODALE PARAMÈTRES ================= -->
   <div id="settings-modal" class="hidden fixed inset-0 z-50 bg-slate-900">
     <div class="flex flex-col h-full">
-      <div class="flex items-center justify-between px-4 py-3 bg-[#4a266a] shrink-0">
+      <div class="safe-top flex items-center justify-between px-4 py-3 bg-[#4a266a] shrink-0">
         <h2 class="font-oswald font-bold text-lg text-[#f2c200] uppercase">Paramètres</h2>
+
         <button id="btn-close-settings" class="text-white p-2" aria-label="Fermer">
           <i data-lucide="x" class="w-6 h-6"></i>
         </button>
@@ -298,8 +309,9 @@
   <!-- ================= MODALE FIN DE MATCH ================= -->
   <div id="end-match-modal" class="hidden fixed inset-0 z-50 bg-slate-900">
     <div class="flex flex-col h-full">
-      <div class="flex items-center justify-between px-4 py-3 bg-[#4a266a] shrink-0">
+      <div class="safe-top flex items-center justify-between px-4 py-3 bg-[#4a266a] shrink-0">
         <h2 class="font-oswald font-bold text-lg text-[#f2c200] uppercase">Fin de match</h2>
+
         <button id="btn-close-end-match" class="text-white p-2" aria-label="Fermer">
           <i data-lucide="x" class="w-6 h-6"></i>
         </button>

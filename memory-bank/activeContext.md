@@ -2,7 +2,8 @@
 
 ## Travail en Cours
 
-Le projet **HBC Nantes Live Stats Gardiens** est en phase d'implémentation. Le squelette PWA est créé et la logique métier est implémentée dans `app.js`. Dernières modifications : **correction du No Sleep sur iPhone** — l'API Wake Lock n'étant pas supportée par Safari iOS, on utilise désormais **NoSleep.js** (vidéo invisible en boucle) comme solution de contournement, activé au premier tap sur l'écran (geste utilisateur requis par iOS).
+Le projet **HBC Nantes Live Stats Gardiens** est en phase d'implémentation. Le squelette PWA est créé et la logique métier est implémentée dans `app.js`. Dernières modifications : **correction du No Sleep sur iPhone** (NoSleep.js car Wake Lock non supporté par Safari iOS) + **correction safe-area iOS** (classe `.safe-top` avec `env(safe-area-inset-top)` appliquée aux headers pour que l'encoche / Dynamic Island n'empiete plus sur `#btn-settings`).
+
 
 
 

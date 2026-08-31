@@ -56,6 +56,7 @@
 - [x] **Bouton "Fin" renommé en "Stats".** Le libellé du bouton `#btn-end-match` dans `index.html` passe de "Fin" à "Stats".
 - [x] **Uniformisation des largeurs des boutons MT1/MT2/Stats.** Ajout de `flex-1` sur les 3 boutons du conteneur période pour qu'ils aient tous la même largeur (visuellement parfait). Réduction de la police du bouton "Stats" (`text-sm` au lieu de `text-base`) pour compenser le texte plus long. Classes synchronisées dans `renderSelectors()` (`app.js`).
 - [x] **Correction No Sleep sur iPhone.** L'API Wake Lock n'est pas supportée par Safari iOS → l'écran s'éteignait. Solution : **NoSleep.js** (CDN) ajouté dans `index.html` + logique dans `app.js` (`isIOS()`, `requestWakeLock()` utilise NoSleep sur iOS, Wake Lock natif ailleurs). NoSleep nécessite un geste utilisateur sur iOS → activation au premier tap (`touchstart`/`click` avec `{ once: true }`). Cache Service Worker incrémenté à `v13` pour forcer la mise à jour.
+- [x] **Correction safe-area iOS (encoche / Dynamic Island).** Sur iPhone, la barre de statut empietait sur le header et bloquait le clic sur `#btn-settings`. Ajout de la classe CSS `.safe-top` (`padding-top: max(env(safe-area-inset-top), 12px)`) appliquée au header principal + aux headers des modales (paramètres, fin de match) pour aligner tous les conteneurs vers le bas et garantir l'accès aux boutons. Cache Service Worker incrémenté à `v14`.
 
 
 
